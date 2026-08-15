@@ -111,8 +111,8 @@ export default function CreateInvoice() {
                 <input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Phone No" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Client GSTIN</label>
-                <input value={clientGstin} onChange={(e) => setClientGstin(e.target.value)} placeholder="GSTIN (optional)" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30" />
+                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">GSTIN/PAN</label>
+                <input value={clientGstin} onChange={(e) => setClientGstin(e.target.value)} placeholder="GSTIN or PAN (optional)" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30" />
               </div>
             </div>
           </div>

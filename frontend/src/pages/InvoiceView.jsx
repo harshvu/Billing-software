@@ -93,7 +93,7 @@ export default function InvoiceView() {
                 <div className="font-bold text-lg">{invoice.client_name}</div>
                 <div className="text-sm text-gray-600 mt-1">{invoice.client_address}</div>
                 <div className="text-sm text-gray-600 mt-2">Phone: {invoice.client_phone || '-'}</div>
-                {invoice.client_gstin && <div className="text-sm text-gray-600">GSTIN: {invoice.client_gstin}</div>}
+                {invoice.client_gstin && <div className="text-sm text-gray-600">GSTIN/PAN: {invoice.client_gstin}</div>}
                 <div className="text-sm text-gray-600">State: {invoice.client_state || '-'}</div>
               </div>
               <div className="border border-gray-200 rounded-xl p-5">

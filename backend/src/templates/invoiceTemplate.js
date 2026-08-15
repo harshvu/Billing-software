@@ -9,6 +9,11 @@ const logoDataUri = (() => {
   return `data:image/png;base64,${buf.toString('base64')}`;
 })();
 
+const sealDataUri = (() => {
+  const buf = fs.readFileSync(path.join(__dirname, '..', 'assets', 'seal.jpg'));
+  return `data:image/jpeg;base64,${buf.toString('base64')}`;
+})();
+
 function formatCurrency(num) {
   const n = Number(num) || 0;
   return '\u20B9 ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -133,16 +138,8 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
       .grand-total .amount { font-size: 18px; font-weight: 800; color: #f0a500; }
 
       .signature-row { margin-top: 18px; display: flex; justify-content: flex-end; }
-      .stamp {
-        width: 110px; height: 110px; border-radius: 50%;
-        border: 2px solid #2d4a28; display: flex; align-items: center; justify-content: center;
-        text-align: center; position: relative;
-      }
-      .stamp::before {
-        content: ''; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px;
-        border: 1px solid #2d4a28; border-radius: 50%;
-      }
-      .stamp span { font-size: 6.5px; font-weight: 700; color: #2d4a28; line-height: 1.3; padding: 0 10px; }
+      .stamp { width: 128px; }
+      .stamp img { width: 100%; height: auto; display: block; mix-blend-mode: multiply; }
       .auth-label { text-align: right; font-size: 9.5px; letter-spacing: 1.5px; color: #566073; margin-top: 6px; text-transform: uppercase; }
 
       .footer-note { text-align: center; color: #a1a8b3; font-size: 9.5px; margin-top: 26px; border-top: 1px solid #eef0f4; padding-top: 10px; }
@@ -170,7 +167,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
         <div class="client-name">${invoice.client_name}</div>
         <div class="muted">${invoice.client_address || ''}</div>
         <div class="muted" style="margin-top:6px;">Phone: ${invoice.client_phone || '-'}</div>
-        ${invoice.client_gstin ? `<div class="muted">GSTIN: ${invoice.client_gstin}</div>` : ''}
+        ${invoice.client_gstin ? `<div class="muted">GSTIN/PAN: ${invoice.client_gstin}</div>` : ''}
         <div class="muted">State: ${invoice.client_state || '-'}</div>
       </div>
       <div class="box">
@@ -226,7 +223,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
 
     <div class="signature-row">
       <div>
-        <div class="stamp"><span>${settings.company_name}</span></div>
+        <div class="stamp"><img src="${sealDataUri}" alt="Company Seal" /></div>
         <div class="auth-label">Authorized Signatory</div>
       </div>
     </div>
