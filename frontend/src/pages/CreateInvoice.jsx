@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import { INDIAN_STATES } from '../constants/indianStates';
 
 const emptyItem = () => ({ particulars: '', hsn: '', qty: 1, rate: 0 });
+const firstItem = () => ({ particulars: 'Consulting Charges', hsn: '', qty: 1, rate: 0 });
 
 export default function CreateInvoice() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function CreateInvoice() {
   const [gstState, setGstState] = useState('');
   const [gstType, setGstType] = useState('igst');
 
-  const [items, setItems] = useState([emptyItem()]);
+  const [items, setItems] = useState([firstItem()]);
   const [remarks, setRemarks] = useState('');
 
   useEffect(() => {

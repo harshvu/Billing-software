@@ -7,7 +7,7 @@ async function generateInvoiceNumber() {
     order: [['id', 'DESC']],
   });
 
-  let nextSeq = 2157; // matches the starting sequence shown in the reference forms
+  let nextSeq = 101; // first invoice created starts at INV-101
   if (last && last.invoice_number) {
     const match = last.invoice_number.match(/(\d+)$/);
     if (match) {

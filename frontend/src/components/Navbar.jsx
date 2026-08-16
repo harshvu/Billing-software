@@ -16,7 +16,7 @@ export default function Navbar() {
     <div className="bg-navy text-white sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="Business Mint" className="h-10 w-auto block" />
+          <img src={logo} alt="Business Mint" className="h-14 w-auto block" />
           <div>
             <div className="font-semibold text-sm leading-none">BusinessMint Solution Billing</div>
             <div className="text-[11px] text-gray-300">Invoice Management System</div>
