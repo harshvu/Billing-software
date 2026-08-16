@@ -71,7 +71,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
         margin-bottom: 14px;
         line-height: 0;
       }
-      .logo-box img { height: 52px; width: auto; display: block; }
+      .logo-box img { height: 68px; width: auto; display: block; }
       .header-right { text-align: right; font-size: 10.5px; line-height: 1.6; color: #dce8d6; }
       .header-right .company-name { color: #f0a500; font-weight: 700; font-size: 11px; margin-bottom: 4px; }
       .doc-label { font-size: 10px; letter-spacing: 3px; color: #aecaa4; margin-top: 4px; }
@@ -155,7 +155,8 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
       </div>
       <div class="header-right">
         <div class="company-name">${settings.company_name}</div>
-        <div>GSTIN: ${settings.gstin || '-'}</div>
+        ${settings.gstin ? `<div>GSTIN: ${settings.gstin}</div>` : ''}
+        ${settings.pan ? `<div>PAN: ${settings.pan}</div>` : ''}
         <div>Phone: ${settings.phone || '-'}</div>
         <div>${settings.address || ''}</div>
       </div>

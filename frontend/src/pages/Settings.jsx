@@ -52,6 +52,7 @@ export default function Settings() {
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Company Name" name="company_name" value={form.company_name} onChange={handleChange} />
           <Field label="GSTIN" name="gstin" value={form.gstin} onChange={handleChange} />
+          <Field label="PAN" name="pan" value={form.pan} onChange={handleChange} />
           <Field label="Phone" name="phone" value={form.phone} onChange={handleChange} />
           <Field label="Logo Text" name="logo_text" value={form.logo_text} onChange={handleChange} />
           <div className="md:col-span-2"><Field label="Address" name="address" textarea value={form.address} onChange={handleChange} /></div>

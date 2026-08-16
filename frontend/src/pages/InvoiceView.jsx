@@ -81,7 +81,7 @@ export default function InvoiceView() {
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-br from-navy to-navy-dark text-white px-8 py-8">
-            <img src={logo} alt="Business Mint" className="h-12 w-auto block mb-3" />
+            <img src={logo} alt="Business Mint" className="h-16 w-auto block mb-3" />
             <div className="text-xs tracking-[3px] text-blue-200">OFFICIAL BILLING DOCUMENT</div>
             <div className="text-2xl font-extrabold mt-1">{invoice.invoice_type === 'tax' ? 'TAX INVOICE' : 'PROFORMA INVOICE'}</div>
           </div>
