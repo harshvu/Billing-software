@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 import { INDIAN_STATES } from '../constants/indianStates';
 import { CRM_MODES } from '../constants/crm';
 
@@ -49,11 +50,14 @@ const emptyForm = {
   user_remark: '',
   payment_contact_no: '', payment_email: '', startup_contact_no: '', startup_email: '',
   invoice_company_name: '', invoice_contact: '', invoice_email: '', invoice_pan: '', invoice_gst: '',
-  invoice_commission: '', after_success_payment: '',
+  invoice_commission: '',
 };
 
 const emptyService = () => ({
-  service: '', mode: 'refundable', percentage: '', total_quoted_amount: '', booking_mode: '', deal_remark: '',
+  service: '', mode: 'refundable', percentage: '', total_quoted_amount: '', booking_mode: '', after_success_payment: '', deal_remark: '',
+});
+
+const emptySchedule = () => ({
   payment_part1_amount: '', payment_part1_date: '',
   payment_part2_amount: '', payment_part2_date: '',
   payment_part3_amount: '', payment_part3_date: '',
@@ -68,11 +72,23 @@ const fmtGst = (amount) => {
 
 export default function CrmSubmit() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [form, setForm] = useState(emptyForm);
   const [isCombo, setIsCombo] = useState(false);
   const [services, setServices] = useState([emptyService()]);
+  const [schedule, setSchedule] = useState(emptySchedule());
+  const [employees, setEmployees] = useState([]);
+  const [leadClosedById, setLeadClosedById] = useState('');
+  const [leadClosedByEmail, setLeadClosedByEmail] = useState('');
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState({ 1: true, 2: true, 3: true, 4: true, 5: true });
+
+  useEffect(() => {
+    if (isAdmin) {
+      api.get('/employees').then((res) => setEmployees(res.data.employees)).catch(() => {});
+    }
+  }, [isAdmin]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   const toggle = (n) => setOpen((o) => ({ ...o, [n]: !o[n] }));
@@ -88,6 +104,8 @@ export default function CrmSubmit() {
   };
   const setServiceField = (idx, field) => (e) => updateService(idx, field, e.target.value);
 
+  const setScheduleField = (field) => (e) => setSchedule((prev) => ({ ...prev, [field]: e.target.value }));
+
   const addService = () => setServices((prev) => [...prev, emptyService()]);
   const removeService = (idx) => setServices((prev) => prev.filter((_, i) => i !== idx));
 
@@ -99,17 +117,30 @@ export default function CrmSubmit() {
     }
   };
 
+  const handleLeadClosedByChange = (e) => {
+    const empId = e.target.value;
+    setLeadClosedById(empId);
+    const emp = employees.find((x) => String(x.id) === String(empId));
+    setLeadClosedByEmail(emp ? emp.email : '');
+  };
+
   const comboTotal = services.reduce((sum, s) => sum + (Number(s.total_quoted_amount) || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form };
-      if (services.length > 1) {
-        payload.combo_services = services;
+      const emp = employees.find((x) => String(x.id) === String(leadClosedById));
+      const payload = {
+        ...form,
+        lead_closed_by: emp ? emp.name : '',
+        lead_closed_by_email: leadClosedByEmail,
+      };
+      const servicesWithSchedule = services.map((s) => ({ ...s, ...schedule }));
+      if (servicesWithSchedule.length > 1) {
+        payload.combo_services = servicesWithSchedule;
       } else {
-        Object.assign(payload, services[0]);
+        Object.assign(payload, servicesWithSchedule[0]);
       }
       const res = await api.post('/crm', payload);
       if (res.data.entries.length > 1) {
@@ -161,13 +192,7 @@ export default function CrmSubmit() {
           </div>
         </Section>
 
-        <Section number={2} icon="📝" title="Additional Notes" open={open[2]} onToggle={() => toggle(2)}>
-          <Field label="Remark">
-            <textarea rows={4} value={form.user_remark} onChange={set('user_remark')} placeholder="Any notes captured at submission" className={inputCls + ' mb-0'} />
-          </Field>
-        </Section>
-
-        <Section number={3} icon="📷" title="Payment & Billing Details" open={open[3]} onToggle={() => toggle(3)}>
+        <Section number={2} icon="📷" title="Payment & Billing Details" open={open[2]} onToggle={() => toggle(2)}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
             <div>
               <Field label="Payment Contact No." required><input required value={form.payment_contact_no} onChange={set('payment_contact_no')} className={inputCls} /></Field>
@@ -227,18 +252,15 @@ export default function CrmSubmit() {
                 <input type="checkbox" onChange={sameAs('invoice_gst', 'gst_no')} /> Same as Company GST
               </label>
             </div>
-            <Field label="After Success Payment" required>
-              <input type="number" step="0.01" required value={form.after_success_payment} onChange={set('after_success_payment')} placeholder="If no after payment, fill 0 here." className={inputCls} />
-            </Field>
           </div>
         </Section>
 
         <Section
-          number={4}
+          number={3}
           icon="⚙️"
           title="Service, Deal & Payment"
-          open={open[4]}
-          onToggle={() => toggle(4)}
+          open={open[3]}
+          onToggle={() => toggle(3)}
           badge={isCombo && <span className="bg-gold text-navy text-[10px] font-bold px-2 py-0.5 rounded-full ml-1">COMBO · {services.length}</span>}
         >
           <label className="flex items-center gap-2 text-sm font-semibold text-navy mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
@@ -269,51 +291,76 @@ export default function CrmSubmit() {
                 )}
                 <Field label="Total Quoted Amount" required><input type="number" step="0.01" required value={svc.total_quoted_amount} onChange={setServiceField(idx, 'total_quoted_amount')} className={inputCls} /></Field>
                 <Field label="Booking Mode" required><input required value={svc.booking_mode} onChange={setServiceField(idx, 'booking_mode')} placeholder="e.g. Cheque, Cash, Online/UPI" className={inputCls} /></Field>
+                <Field label="After Success Payment" required>
+                  <input type="number" step="0.01" required value={svc.after_success_payment} onChange={setServiceField(idx, 'after_success_payment')} placeholder="If no after payment, fill 0 here." className={inputCls} />
+                </Field>
                 <div className="md:col-span-2">
                   <Field label="Remark"><textarea rows={2} value={svc.deal_remark} onChange={setServiceField(idx, 'deal_remark')} className={inputCls + ' mb-0'} /></Field>
                 </div>
               </div>
-
-              <div className="text-xs font-bold text-gold uppercase mt-2 mb-3">📅 Payment Schedule for this Service</div>
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="border-l-4 border-gold rounded-lg bg-gray-50 p-4 mb-3">
-                  <div className="text-xs font-bold text-gray-500 uppercase mb-3">
-                    {'₹'} Payment Part {n}{n === 1 ? ' (Advance)' : ''}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                    <Field label="Amount (Before GST)" required={n === 1}>
-                      <input
-                        type="number" step="0.01" required={n === 1}
-                        value={svc[`payment_part${n}_amount`]} onChange={setServiceField(idx, `payment_part${n}_amount`)}
-                        className={inputCls}
-                      />
-                    </Field>
-                    <Field label="Amount (With 18% GST)">
-                      <input disabled value={fmtGst(svc[`payment_part${n}_amount`])} placeholder="Auto-calculated" className={inputCls + ' bg-gray-100 text-gray-500'} />
-                    </Field>
-                    <Field label="Payment Date" required={n === 1}>
-                      <input type="date" required={n === 1} value={svc[`payment_part${n}_date`]} onChange={setServiceField(idx, `payment_part${n}_date`)} className={inputCls} />
-                    </Field>
-                  </div>
-                </div>
-              ))}
             </div>
           ))}
 
           {isCombo && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-5">
               <button type="button" onClick={addService} className="bg-green-600 hover:bg-green-700 transition text-white text-xs font-bold px-4 py-2 rounded-full">+ Add Another Service</button>
               <div className="text-sm font-bold text-navy">Combo Total Quoted: <span className="text-gold">₹{comboTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
             </div>
           )}
+
+          <div className="text-xs font-bold text-gold uppercase mt-2 mb-3">
+            📅 Payment Schedule {isCombo && services.length > 1 ? '— shared across all services above' : ''}
+          </div>
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="border-l-4 border-gold rounded-lg bg-gray-50 p-4 mb-3">
+              <div className="text-xs font-bold text-gray-500 uppercase mb-3">
+                {'₹'} Payment Part {n}{n === 1 ? ' (Advance)' : ''}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <Field label="Amount (Before GST)" required={n === 1}>
+                  <input
+                    type="number" step="0.01" required={n === 1}
+                    value={schedule[`payment_part${n}_amount`]} onChange={setScheduleField(`payment_part${n}_amount`)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Amount (With 18% GST)">
+                  <input disabled value={fmtGst(schedule[`payment_part${n}_amount`])} placeholder="Auto-calculated" className={inputCls + ' bg-gray-100 text-gray-500'} />
+                </Field>
+                <Field label="Payment Date" required={n === 1}>
+                  <input type="date" required={n === 1} value={schedule[`payment_part${n}_date`]} onChange={setScheduleField(`payment_part${n}_date`)} className={inputCls} />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </Section>
+
+        <Section number={4} icon="📝" title="Additional Notes" open={open[4]} onToggle={() => toggle(4)}>
+          <Field label="Remark">
+            <textarea rows={4} value={form.user_remark} onChange={set('user_remark')} placeholder="Any notes captured at submission" className={inputCls + ' mb-0'} />
+          </Field>
         </Section>
 
         <Section number={5} icon="👤" title="Lead Closure & Submission" open={open[5]} onToggle={() => toggle(5)}>
-          <p className="text-sm text-gray-500 mb-4">
-            {isCombo
-              ? `This will create ${services.length} separate, linked CRM entries — one per service — each independently trackable. Assignment, stage progression, and lead closure for each are managed from its own CRM detail page after submission.`
-              : 'Assignment, stage progression, and lead closure are managed by an admin from the CRM detail page after submission.'}
-          </p>
+          {isAdmin ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 mb-4">
+              <Field label="Lead Closed By">
+                <select value={leadClosedById} onChange={handleLeadClosedByChange} className={inputCls}>
+                  <option value="">-- Select Employee --</option>
+                  {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Lead Closed By Email">
+                <input disabled value={leadClosedByEmail} placeholder="Auto-fetched on employee selection" className={inputCls + ' bg-gray-100 text-gray-500'} />
+              </Field>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 mb-4">
+              {isCombo
+                ? `This will create ${services.length} separate, linked CRM entries — one per service — each independently trackable. Assignment and stage progression are managed from each entry's CRM detail page after submission.`
+                : 'Assignment and stage progression are managed by an admin from the CRM detail page after submission.'}
+            </p>
+          )}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => navigate('/crm')} className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-600 font-semibold text-sm">Cancel</button>
             <button disabled={saving} type="submit" className="bg-gold text-navy font-bold px-8 py-2.5 rounded-lg shadow disabled:opacity-60">

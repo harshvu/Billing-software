@@ -14,10 +14,11 @@ const SHARED_FIELDS = [
   'user_remark',
   'payment_contact_no', 'payment_email', 'startup_contact_no', 'startup_email',
   'invoice_company_name', 'invoice_contact', 'invoice_email', 'invoice_pan', 'invoice_gst',
-  'invoice_commission', 'after_success_payment',
+  'invoice_commission',
+  'lead_closed_by', 'lead_closed_by_email',
 ];
 // Fields that live per-service (each service in a combo gets its own copy).
-const SERVICE_FIELDS = ['service', 'mode', 'percentage', 'total_quoted_amount', 'booking_mode', 'deal_remark'];
+const SERVICE_FIELDS = ['service', 'mode', 'percentage', 'total_quoted_amount', 'booking_mode', 'after_success_payment', 'deal_remark'];
 const ENTRY_FIELDS = [...SHARED_FIELDS, ...SERVICE_FIELDS];
 
 const SHARED_REQUIRED_FIELDS = [

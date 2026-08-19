@@ -239,6 +239,7 @@ export default function CrmDetail() {
                 <Item label="Mode" value={CRM_MODE_LABELS[entry.mode] || entry.mode} />
                 <Item label="Percentage" value={entry.percentage} />
                 <Item label="Booking Mode" value={entry.booking_mode} />
+                <Item label="After Success Payment" value={fmt(entry.after_success_payment)} />
                 <Item label="Total Quoted" value={fmt(entry.total_quoted_amount)} />
                 <Item label="Advance Amount" value={fmt(entry.payment_part1_amount)} />
                 <Item label="Advance With GST" value={fmt(entry.payment_part1_gst)} />
@@ -282,7 +283,6 @@ export default function CrmDetail() {
                 <Item label="Payment Email" value={entry.payment_email} />
                 <Item label="Startup Contact" value={entry.startup_contact_no} />
                 <Item label="Startup Email" value={entry.startup_email} />
-                <Item label="After Success Payment" value={fmt(entry.after_success_payment)} />
               </div>
             </Card>
 
@@ -377,11 +377,21 @@ export default function CrmDetail() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Lead Closed By</label>
-                    <input value={wf.lead_closed_by} onChange={(e) => setWf((w) => ({ ...w, lead_closed_by: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <select
+                      value={employees.find((emp) => emp.name === wf.lead_closed_by)?.id || ''}
+                      onChange={(e) => {
+                        const emp = employees.find((x) => String(x.id) === String(e.target.value));
+                        setWf((w) => ({ ...w, lead_closed_by: emp ? emp.name : '', lead_closed_by_email: emp ? emp.email : '' }));
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    >
+                      <option value="">-- Select Employee --</option>
+                      {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Lead Closed By Email</label>
-                    <input value={wf.lead_closed_by_email} onChange={(e) => setWf((w) => ({ ...w, lead_closed_by_email: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <input disabled value={wf.lead_closed_by_email} placeholder="Auto-fetched on employee selection" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
                   </div>
                   <button onClick={handleWorkflowSave} disabled={savingWorkflow} className="w-full bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm py-2.5 rounded-lg disabled:opacity-60">
                     {savingWorkflow ? 'Saving...' : '✓ Update Workflow'}
