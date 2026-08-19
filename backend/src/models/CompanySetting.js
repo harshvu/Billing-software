@@ -7,7 +7,7 @@ const CompanySetting = sequelize.define('CompanySetting', {
     primaryKey: true,
     autoIncrement: true,
   },
-  company_name: { type: DataTypes.STRING, allowNull: false, defaultValue: 'BUSINESS MINT SOLUTION PRIVATE LIMITED' },
+  company_name: { type: DataTypes.STRING, allowNull: false, defaultValue: 'BUSINESSMINT SOLUTION PRIVATE LIMITED' },
   gstin: { type: DataTypes.STRING, allowNull: true, defaultValue: '24AAOCR9991A1ZZ' },
   pan: { type: DataTypes.STRING, allowNull: true, defaultValue: 'AAOCB9894N' },
   phone: { type: DataTypes.STRING, allowNull: true, defaultValue: '+91 9724033596' },
@@ -16,6 +16,7 @@ const CompanySetting = sequelize.define('CompanySetting', {
   bank_account_name: { type: DataTypes.STRING, allowNull: true, defaultValue: 'BUSINESSMINT SOLUTION FINANCIAL SERVICES PVT LTD' },
   bank_account_no: { type: DataTypes.STRING, allowNull: true, defaultValue: '404005000998' },
   bank_ifsc: { type: DataTypes.STRING, allowNull: true, defaultValue: 'ICIC0004040' },
+  bank_branch: { type: DataTypes.STRING, allowNull: true, defaultValue: 'OLD PADRA ROAD, VADODARA' },
   upi_id: { type: DataTypes.STRING, allowNull: true, defaultValue: 'rexer26340.ibz@icici' },
   default_gst_rate: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 18.0 },
 }, {

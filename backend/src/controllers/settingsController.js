@@ -23,7 +23,7 @@ exports.updateSettings = async (req, res) => {
     }
     const fields = [
       'company_name', 'gstin', 'pan', 'phone', 'address', 'logo_text',
-      'bank_account_name', 'bank_account_no', 'bank_ifsc', 'upi_id', 'default_gst_rate',
+      'bank_account_name', 'bank_account_no', 'bank_ifsc', 'bank_branch', 'upi_id', 'default_gst_rate',
     ];
     fields.forEach((f) => {
       if (req.body[f] !== undefined) settings[f] = req.body[f];

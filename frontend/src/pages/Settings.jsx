@@ -59,6 +59,7 @@ export default function Settings() {
           <Field label="Bank Account Name" name="bank_account_name" value={form.bank_account_name} onChange={handleChange} />
           <Field label="Bank Account Number" name="bank_account_no" value={form.bank_account_no} onChange={handleChange} />
           <Field label="IFSC Code" name="bank_ifsc" value={form.bank_ifsc} onChange={handleChange} />
+          <Field label="Branch" name="bank_branch" value={form.bank_branch} onChange={handleChange} />
           <Field label="UPI ID" name="upi_id" value={form.upi_id} onChange={handleChange} />
           <Field label="Default GST Rate (%)" name="default_gst_rate" value={form.default_gst_rate} onChange={handleChange} />
 

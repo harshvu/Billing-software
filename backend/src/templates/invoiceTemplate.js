@@ -207,6 +207,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
           <div class="line"><span class="label">Account Name: </span><span class="value">${settings.bank_account_name}</span></div>
           <div class="line"><span class="label">Account No: </span><span class="value">${settings.bank_account_no}</span></div>
           <div class="line"><span class="label">IFSC Code: </span><span class="value">${settings.bank_ifsc}</span></div>
+          ${settings.bank_branch ? `<div class="line"><span class="label">Branch: </span><span class="value">${settings.bank_branch}</span></div>` : ''}
           <div class="line"><span class="label">UPI ID: </span><span class="value">${settings.upi_id}</span></div>
         </div>
         <div class="qr-wrap">

@@ -212,6 +212,7 @@ export default function CreateInvoice() {
                 <div><span className="text-gray-500">Account Name: </span><span className="font-semibold">{settings.bank_account_name}</span></div>
                 <div><span className="text-gray-500">Account No: </span><span className="font-semibold">{settings.bank_account_no}</span></div>
                 <div><span className="text-gray-500">IFSC Code: </span><span className="font-semibold">{settings.bank_ifsc}</span></div>
+                {settings.bank_branch && <div><span className="text-gray-500">Branch: </span><span className="font-semibold">{settings.bank_branch}</span></div>}
                 <div><span className="text-gray-500">UPI ID: </span><span className="font-semibold">{settings.upi_id}</span></div>
               </div>
             ) : <div className="text-sm text-gray-400">Loading...</div>}
