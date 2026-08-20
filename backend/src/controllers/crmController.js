@@ -36,6 +36,23 @@ function isValidDateString(value) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
 
+// DECIMAL columns reject '' outright (MySQL strict mode) — coerce blank/undefined
+// values to a safe fallback before they ever reach the query.
+const DECIMAL_FIELD_FALLBACKS = {
+  invoice_commission: 0,
+  after_success_payment: 0,
+  total_quoted_amount: 0,
+  percentage: null,
+};
+
+function sanitizeDecimals(target) {
+  for (const field of Object.keys(DECIMAL_FIELD_FALLBACKS)) {
+    if (Object.prototype.hasOwnProperty.call(target, field) && (target[field] === '' || target[field] === undefined)) {
+      target[field] = DECIMAL_FIELD_FALLBACKS[field];
+    }
+  }
+}
+
 function computeGst(amount) {
   if (amount === '' || amount === null || amount === undefined) return null;
   const n = Number(amount);
@@ -135,6 +152,7 @@ exports.createCrmEntry = async (req, res) => {
       const data = {};
       SHARED_FIELDS.forEach((f) => { if (body[f] !== undefined) data[f] = body[f]; });
       SERVICE_FIELDS.forEach((f) => { if (svc[f] !== undefined) data[f] = svc[f]; });
+      sanitizeDecimals(data);
       const partErrors = applyPaymentParts(data, svc, { requirePart1: true });
       if (partErrors.length) {
         await t.rollback();
@@ -244,6 +262,7 @@ exports.updateCrmEntry = async (req, res) => {
     }
 
     ENTRY_FIELDS.forEach((f) => { if (body[f] !== undefined) entry[f] = body[f]; });
+    sanitizeDecimals(entry);
     const partErrors = applyPaymentParts(entry, body);
     if (partErrors.length) {
       return res.status(400).json({ success: false, message: partErrors[0] });

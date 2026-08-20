@@ -350,7 +350,7 @@ export default function CrmDetail() {
 
             <Card title="Internal & Workflow" icon="🔧">
               <div className="space-y-3 text-sm">
-                <Item label="Submitted By Email" value={entry.submitted_by_name} />
+                <Item label="Submitted By" value={entry.submitted_by_name} />
                 <Item label="Created At" value={new Date(entry.createdAt).toLocaleString('en-IN')} />
               </div>
 
@@ -401,6 +401,7 @@ export default function CrmDetail() {
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                   <Item label="Current Step" value={CRM_STEP_LABELS[entry.current_step] || entry.current_step} />
                   <Item label="Lead Closed By" value={entry.lead_closed_by} />
+                  <Item label="Lead Closed By Email" value={entry.lead_closed_by_email} />
                 </div>
               )}
             </Card>
