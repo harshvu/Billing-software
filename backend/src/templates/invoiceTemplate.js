@@ -217,8 +217,12 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
       </div>
 
       <div class="totals-box">
+        ${!isTax && invoice.apply_gst ? `
+        <div class="totals-line"><span>Sub-Total</span><span class="b">${formatCurrency(invoice.sub_total)} + ${Number(invoice.gst_rate).toFixed(0)}% GST</span></div>
+        ` : `
         <div class="totals-line"><span>Sub-Total</span><span class="b">${formatCurrency(invoice.sub_total)}</span></div>
         ${invoice.apply_gst ? `<div class="totals-line"><span>${gstLabel}</span><span class="b">${formatCurrency(invoice.gst_amount)}</span></div>` : ''}
+        `}
         <div class="grand-total"><span class="label">GRAND TOTAL</span><span class="amount">${formatCurrency(invoice.grand_total)}</span></div>
       </div>
     </div>

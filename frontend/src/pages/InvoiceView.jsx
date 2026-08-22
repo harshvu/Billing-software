@@ -133,12 +133,18 @@ export default function InvoiceView() {
 
             <div className="flex justify-end">
               <div className="w-full md:w-72 space-y-2">
-                <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.sub_total)}</span></div>
-                {invoice.apply_gst && (
-                  <div className="flex justify-between text-sm">
-                    <span>{invoice.gst_type === 'igst' ? `IGST (${invoice.gst_rate}%)` : `CGST+SGST (${invoice.gst_rate}%)`}</span>
-                    <span className="font-semibold">{fmt(invoice.gst_amount)}</span>
-                  </div>
+                {invoice.invoice_type === 'proforma' && invoice.apply_gst ? (
+                  <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.sub_total)} + {Number(invoice.gst_rate)}% GST</span></div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.sub_total)}</span></div>
+                    {invoice.apply_gst && (
+                      <div className="flex justify-between text-sm">
+                        <span>{invoice.gst_type === 'igst' ? `IGST (${invoice.gst_rate}%)` : `CGST+SGST (${invoice.gst_rate}%)`}</span>
+                        <span className="font-semibold">{fmt(invoice.gst_amount)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="flex justify-between items-center bg-navy text-white rounded-lg px-4 py-3">
                   <span className="font-bold text-sm">Grand Total</span>
