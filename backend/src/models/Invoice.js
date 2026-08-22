@@ -8,7 +8,7 @@ const Invoice = sequelize.define('Invoice', {
     autoIncrement: true,
   },
   invoice_number: { type: DataTypes.STRING, allowNull: false, unique: true },
-  invoice_type: { type: DataTypes.ENUM('proforma', 'tax'), allowNull: false, defaultValue: 'proforma' },
+  invoice_type: { type: DataTypes.ENUM('proforma', 'tax', 'simple'), allowNull: false, defaultValue: 'proforma' },
   invoice_date: { type: DataTypes.DATEONLY, allowNull: false },
 
   branch: { type: DataTypes.STRING, allowNull: true },

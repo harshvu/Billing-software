@@ -220,13 +220,12 @@ export default function CreateInvoice() {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="text-xs font-bold text-navy uppercase mb-3">🧾 Invoice Summary</div>
-            {applyGst ? (
+            <div className="flex justify-between text-sm py-2 border-b border-gray-100">
+              <span>Sub-Total</span><span className="font-semibold">{fmt(subTotal)}</span>
+            </div>
+            {applyGst && (
               <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                <span>Sub-Total</span><span className="font-semibold">{fmt(subTotal)} + {gstRate}% GST</span>
-              </div>
-            ) : (
-              <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                <span>Sub-Total</span><span className="font-semibold">{fmt(subTotal)}</span>
+                <span>{gstType === 'igst' ? `IGST (${gstRate}%)` : `CGST + SGST (${gstRate}%)`}</span><span className="font-semibold">{fmt(gstAmount)}</span>
               </div>
             )}
             <div className="flex justify-between items-center bg-navy text-white rounded-lg px-4 py-3 mt-3">

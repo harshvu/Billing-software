@@ -81,7 +81,7 @@ export default function Invoices() {
                   <tr key={inv.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-3 font-semibold text-navy">{inv.invoice_number}</td>
                     <td className="px-5 py-3 capitalize">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${inv.invoice_type === 'tax' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${inv.invoice_type === 'tax' ? 'bg-purple-100 text-purple-700' : inv.invoice_type === 'simple' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                         {inv.invoice_type}
                       </span>
                     </td>

@@ -29,7 +29,7 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'At least one line item is required.' });
     }
 
-    const invoiceNumber = await generateInvoiceNumber();
+    const invoiceNumber = await generateInvoiceNumber('proforma');
     const rate = apply_gst ? (gst_rate || 18) : 0;
     const { subTotal, gstAmount, grandTotal } = computeTotals(items, apply_gst, rate);
 
@@ -159,6 +159,69 @@ exports.convertToTaxInvoice = async (req, res) => {
   } catch (err) {
     console.error('Convert to tax invoice error:', err);
     return res.status(500).json({ success: false, message: 'Server error while converting invoice.' });
+  }
+};
+
+// POST /api/invoices/:id/generate-simple  (admin only)
+// Creates a NEW, separate Invoice record (its own id + INV-01-style number) that
+// mirrors this invoice's client/items/amounts but displays GST as a single
+// inclusive Sub-Total with an "18% GST is applicable" note, instead of a broken-out
+// GST line. The source invoice (Proforma or Tax) is left completely untouched.
+exports.generateSimpleInvoice = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const source = await Invoice.findByPk(req.params.id, { include: [{ model: InvoiceItem, as: 'items' }] });
+    if (!source) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+    if (source.invoice_type === 'simple') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'This is already a simple Invoice.' });
+    }
+
+    const invoiceNumber = await generateInvoiceNumber('simple');
+
+    const invoice = await Invoice.create({
+      invoice_number: invoiceNumber,
+      invoice_type: 'simple',
+      invoice_date: source.invoice_date,
+      branch: source.branch,
+      client_name: source.client_name,
+      client_address: source.client_address,
+      client_phone: source.client_phone,
+      client_gstin: source.client_gstin,
+      client_state: source.client_state,
+      apply_gst: source.apply_gst,
+      gst_rate: source.gst_rate,
+      gst_type: source.gst_type,
+      sub_total: source.sub_total,
+      gst_amount: source.gst_amount,
+      grand_total: source.grand_total,
+      remarks: source.remarks,
+      generated_by_id: req.user.id,
+      generated_by_name: req.user.name,
+    }, { transaction: t });
+
+    const itemRows = source.items.map((it) => ({
+      invoice_id: invoice.id,
+      s_no: it.s_no,
+      particulars: it.particulars,
+      hsn: it.hsn,
+      qty: it.qty,
+      rate: it.rate,
+      amount: it.amount,
+    }));
+    await InvoiceItem.bulkCreate(itemRows, { transaction: t });
+
+    await t.commit();
+
+    const fullInvoice = await Invoice.findByPk(invoice.id, { include: [{ model: InvoiceItem, as: 'items' }] });
+    return res.status(201).json({ success: true, message: 'Invoice generated successfully.', invoice: fullInvoice });
+  } catch (err) {
+    await t.rollback();
+    console.error('Generate simple invoice error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while generating invoice.' });
   }
 };
 

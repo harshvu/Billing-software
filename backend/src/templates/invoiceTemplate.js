@@ -27,7 +27,8 @@ function formatDate(dateStr) {
 
 function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
   const isTax = invoice.invoice_type === 'tax';
-  const docTitle = isTax ? 'TAX INVOICE' : 'PROFORMA INVOICE';
+  const isSimple = invoice.invoice_type === 'simple';
+  const docTitle = isTax ? 'TAX INVOICE' : isSimple ? 'INVOICE' : 'PROFORMA INVOICE';
 
   const gstLabel = invoice.gst_type === 'cgst_sgst'
     ? `CGST (${(invoice.gst_rate / 2).toFixed(1)}%) + SGST (${(invoice.gst_rate / 2).toFixed(1)}%)`
@@ -134,6 +135,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
       .totals-box { flex: 0.9; display: flex; flex-direction: column; gap: 10px; }
       .totals-line { display: flex; justify-content: space-between; font-size: 11.5px; border: 1px solid #e5e9f0; border-radius: 8px; padding: 10px 14px; }
       .grand-total { background: #2d4a28; color: #fff; border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+      .gst-note { font-size: 9.5px; color: #566073; font-style: italic; padding: 2px 2px 0; }
       .grand-total .label { font-size: 12px; font-weight: 700; }
       .grand-total .amount { font-size: 18px; font-weight: 800; color: #f0a500; }
 
@@ -217,8 +219,9 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
       </div>
 
       <div class="totals-box">
-        ${!isTax && invoice.apply_gst ? `
-        <div class="totals-line"><span>Sub-Total</span><span class="b">${formatCurrency(invoice.sub_total)} + ${Number(invoice.gst_rate).toFixed(0)}% GST</span></div>
+        ${isSimple ? `
+        <div class="totals-line"><span>Sub-Total</span><span class="b">${formatCurrency(invoice.grand_total)}</span></div>
+        ${invoice.apply_gst ? `<div class="gst-note">${Number(invoice.gst_rate).toFixed(0)}% GST is applicable and included in the above amount.</div>` : ''}
         ` : `
         <div class="totals-line"><span>Sub-Total</span><span class="b">${formatCurrency(invoice.sub_total)}</span></div>
         ${invoice.apply_gst ? `<div class="totals-line"><span>${gstLabel}</span><span class="b">${formatCurrency(invoice.gst_amount)}</span></div>` : ''}

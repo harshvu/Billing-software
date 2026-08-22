@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
@@ -8,12 +8,14 @@ import logo from '../assets/logo.png';
 
 export default function InvoiceView() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     api.get(`/invoices/${id}`).then((res) => setInvoice(res.data.invoice)).finally(() => setLoading(false));
@@ -32,6 +34,19 @@ export default function InvoiceView() {
       toast.error(err.response?.data?.message || 'Failed to convert invoice.');
     } finally {
       setConverting(false);
+    }
+  };
+
+  const handleGenerateInvoice = async () => {
+    setGenerating(true);
+    try {
+      const res = await api.post(`/invoices/${id}/generate-simple`);
+      toast.success(`Invoice ${res.data.invoice.invoice_number} generated successfully.`);
+      navigate(`/invoices/${res.data.invoice.id}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate invoice.');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -73,6 +88,11 @@ export default function InvoiceView() {
                 {converting ? 'Converting...' : '🧾 Generate Tax Invoice'}
               </button>
             )}
+            {isAdmin && (invoice.invoice_type === 'proforma' || invoice.invoice_type === 'tax') && (
+              <button onClick={handleGenerateInvoice} disabled={generating} className="bg-green-600 hover:bg-green-700 transition text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
+                {generating ? 'Generating...' : '📄 Generate Invoice'}
+              </button>
+            )}
             <button onClick={handleDownload} disabled={downloading} className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
               {downloading ? 'Generating PDF...' : '⬇ Download PDF'}
             </button>
@@ -83,7 +103,7 @@ export default function InvoiceView() {
           <div className="bg-gradient-to-br from-navy to-navy-dark text-white px-8 py-8">
             <img src={logo} alt="Business Mint" className="h-16 w-auto block mb-3" />
             <div className="text-xs tracking-[3px] text-blue-200">OFFICIAL BILLING DOCUMENT</div>
-            <div className="text-2xl font-extrabold mt-1">{invoice.invoice_type === 'tax' ? 'TAX INVOICE' : 'PROFORMA INVOICE'}</div>
+            <div className="text-2xl font-extrabold mt-1">{invoice.invoice_type === 'tax' ? 'TAX INVOICE' : invoice.invoice_type === 'simple' ? 'INVOICE' : 'PROFORMA INVOICE'}</div>
           </div>
 
           <div className="p-8">
@@ -133,8 +153,13 @@ export default function InvoiceView() {
 
             <div className="flex justify-end">
               <div className="w-full md:w-72 space-y-2">
-                {invoice.invoice_type === 'proforma' && invoice.apply_gst ? (
-                  <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.sub_total)} + {Number(invoice.gst_rate)}% GST</span></div>
+                {invoice.invoice_type === 'simple' ? (
+                  <>
+                    <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.grand_total)}</span></div>
+                    {invoice.apply_gst && (
+                      <div className="text-xs text-gray-500 italic">{Number(invoice.gst_rate)}% GST is applicable and included in the above amount.</div>
+                    )}
+                  </>
                 ) : (
                   <>
                     <div className="flex justify-between text-sm"><span>Sub-Total</span><span className="font-semibold">{fmt(invoice.sub_total)}</span></div>
