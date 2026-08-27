@@ -12,6 +12,15 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem('user');
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
+      // Refresh from the server so permission changes an admin made while this
+      // user was logged in (or in a previous session) take effect without
+      // requiring them to log out and back in.
+      api.get('/auth/me')
+        .then((res) => {
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          setUser(res.data.user);
+        })
+        .catch(() => {});
     }
     setLoading(false);
   }, []);

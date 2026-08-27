@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { hasPermission } from '../constants/permissions';
 import logo from '../assets/logo.png';
 
 export default function InvoiceView() {
@@ -11,6 +12,9 @@ export default function InvoiceView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canConvertToTax = hasPermission(user, 'invoices', 'convertToTax');
+  const canGenerateInvoice = hasPermission(user, 'invoices', 'generateInvoice');
+  const canDownload = hasPermission(user, 'invoices', 'download');
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -83,19 +87,21 @@ export default function InvoiceView() {
         <div className="flex items-center justify-between mb-6">
           <Link to="/invoices" className="text-navy text-sm font-semibold hover:underline">← Back to Invoices</Link>
           <div className="flex gap-3">
-            {isAdmin && invoice.invoice_type === 'proforma' && (
+            {(isAdmin || canConvertToTax) && invoice.invoice_type === 'proforma' && (
               <button onClick={handleConvertToTax} disabled={converting} className="bg-gold hover:brightness-95 transition text-navy font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
                 {converting ? 'Converting...' : '🧾 Generate Tax Invoice'}
               </button>
             )}
-            {isAdmin && (invoice.invoice_type === 'proforma' || invoice.invoice_type === 'tax') && (
+            {(isAdmin || canGenerateInvoice) && (invoice.invoice_type === 'proforma' || invoice.invoice_type === 'tax') && (
               <button onClick={handleGenerateInvoice} disabled={generating} className="bg-green-600 hover:bg-green-700 transition text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
                 {generating ? 'Generating...' : '📄 Generate Invoice'}
               </button>
             )}
-            <button onClick={handleDownload} disabled={downloading} className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
-              {downloading ? 'Generating PDF...' : '⬇ Download PDF'}
-            </button>
+            {(isAdmin || canDownload) && (
+              <button onClick={handleDownload} disabled={downloading} className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
+                {downloading ? 'Generating PDF...' : '⬇ Download PDF'}
+              </button>
+            )}
           </div>
         </div>
 

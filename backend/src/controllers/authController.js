@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { withDefaults } = require('../constants/permissions');
 
 const signToken = (user) => {
   return jwt.sign(
@@ -18,6 +19,7 @@ const sanitizeUser = (user) => ({
   phone: user.phone,
   branch: user.branch,
   status: user.status,
+  permissions: user.role === 'employee' ? withDefaults(user.permissions) : undefined,
 });
 
 // POST /api/auth/login  (shared by admin + employee)

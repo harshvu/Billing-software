@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { User, Invoice } = require('../models');
+const { DEFAULT_EMPLOYEE_PERMISSIONS, PERMISSION_SCHEMA, withDefaults } = require('../constants/permissions');
 
 const sanitize = (u) => ({
   id: u.id,
@@ -10,6 +11,7 @@ const sanitize = (u) => ({
   branch: u.branch,
   status: u.status,
   createdAt: u.createdAt,
+  permissions: withDefaults(u.permissions),
 });
 
 // POST /api/employees  (admin only) - create a new employee
@@ -40,6 +42,7 @@ exports.createEmployee = async (req, res) => {
       branch,
       status: 'active',
       created_by: req.user.id,
+      permissions: DEFAULT_EMPLOYEE_PERMISSIONS,
     });
 
     return res.status(201).json({ success: true, message: 'Employee created successfully.', employee: sanitize(employee) });
@@ -90,6 +93,50 @@ exports.updateEmployee = async (req, res) => {
   } catch (err) {
     console.error('Update employee error:', err);
     return res.status(500).json({ success: false, message: 'Server error while updating employee.' });
+  }
+};
+
+// GET /api/employees/:id/permissions (admin only)
+exports.getEmployeePermissions = async (req, res) => {
+  try {
+    const employee = await User.findOne({ where: { id: req.params.id, role: 'employee' } });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+    return res.json({ success: true, schema: PERMISSION_SCHEMA, permissions: withDefaults(employee.permissions) });
+  } catch (err) {
+    console.error('Get employee permissions error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while fetching permissions.' });
+  }
+};
+
+// PUT /api/employees/:id/permissions (admin only)
+exports.updateEmployeePermissions = async (req, res) => {
+  try {
+    const employee = await User.findOne({ where: { id: req.params.id, role: 'employee' } });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    const incoming = req.body.permissions || {};
+    // Whitelist against the known schema only — never trust arbitrary keys from the client.
+    const next = {};
+    for (const moduleKey of Object.keys(PERMISSION_SCHEMA)) {
+      next[moduleKey] = {};
+      for (const actionKey of Object.keys(PERMISSION_SCHEMA[moduleKey].actions)) {
+        const current = withDefaults(employee.permissions)[moduleKey][actionKey];
+        next[moduleKey][actionKey] = incoming[moduleKey] && typeof incoming[moduleKey][actionKey] === 'boolean'
+          ? incoming[moduleKey][actionKey]
+          : current;
+      }
+    }
+
+    employee.permissions = next;
+    await employee.save();
+    return res.json({ success: true, message: 'Permissions updated successfully.', permissions: next });
+  } catch (err) {
+    console.error('Update employee permissions error:', err);
+    return res.status(500).json({ success: false, message: 'Server error while updating permissions.' });
   }
 };
 

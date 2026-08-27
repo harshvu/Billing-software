@@ -5,6 +5,7 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { CRM_STATUSES, CRM_STEPS, CRM_STATUS_LABELS, CRM_STEP_LABELS, CRM_MODE_LABELS, CRM_DOC_TYPES, statusBadgeClass } from '../constants/crm';
+import { hasPermission } from '../constants/permissions';
 
 function Card({ title, icon, children, right }) {
   return (
@@ -31,6 +32,9 @@ export default function CrmDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canEditWorkflow = isAdmin || hasPermission(user, 'crm', 'updateWorkflow');
+  const canUploadPaymentProof = isAdmin || hasPermission(user, 'crm', 'uploadPaymentProof');
+  const canUploadDocument = isAdmin || hasPermission(user, 'crm', 'uploadDocument');
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
   const [data, setData] = useState(null);
@@ -64,10 +68,10 @@ export default function CrmDetail() {
   useEffect(() => { load(); }, [id]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canEditWorkflow) {
       api.get('/employees').then((res) => setEmployees(res.data.employees)).catch(() => {});
     }
-  }, [isAdmin]);
+  }, [canEditWorkflow]);
 
   const handleProofUpload = async (e) => {
     const file = e.target.files[0];
@@ -143,7 +147,6 @@ export default function CrmDetail() {
   }
 
   const { entry, documents, linkedEntries, comboEntries, totals, is_editable } = data;
-  const canEditWorkflow = isAdmin;
   const canEditRemark = isAdmin || entry.assigned_to_id === user?.id;
 
   return (
@@ -288,16 +291,18 @@ export default function CrmDetail() {
 
             <Card title="Client Documents" icon="📁">
               <p className="text-xs text-gray-400 mb-4">Documents are saved against the client's phone number, so they appear on every CRM record for the same client.</p>
-              <form onSubmit={handleDocUpload} className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="Document Title" className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                <select value={docType} onChange={(e) => setDocType(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  {CRM_DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <input type="file" name="docFile" className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2" />
-                <button disabled={uploadingDoc} type="submit" className="md:col-span-2 bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-60">
-                  {uploadingDoc ? 'Uploading...' : '⬆ Upload Client Document'}
-                </button>
-              </form>
+              {canUploadDocument && (
+                <form onSubmit={handleDocUpload} className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="Document Title" className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <select value={docType} onChange={(e) => setDocType(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    {CRM_DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input type="file" name="docFile" className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2" />
+                  <button disabled={uploadingDoc} type="submit" className="md:col-span-2 bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-60">
+                    {uploadingDoc ? 'Uploading...' : '⬆ Upload Client Document'}
+                  </button>
+                </form>
+              )}
               {documents.length === 0 ? (
                 <p className="text-sm text-gray-400">No client documents uploaded yet for this phone number.</p>
               ) : (
@@ -342,10 +347,12 @@ export default function CrmDetail() {
                 <p className="text-sm text-gray-400 mb-2">No payment proof uploaded yet.</p>
               )}
               {entry.payment_proof_path && <p className="text-xs text-gray-400 text-center mb-3">Click to zoom</p>}
-              <label className="block">
-                <span className="text-xs font-semibold text-gray-600 uppercase">Upload / Replace</span>
-                <input type="file" accept="image/*,.pdf" onChange={handleProofUpload} disabled={uploadingProof} className="w-full text-sm mt-1" />
-              </label>
+              {canUploadPaymentProof && (
+                <label className="block">
+                  <span className="text-xs font-semibold text-gray-600 uppercase">Upload / Replace</span>
+                  <input type="file" accept="image/*,.pdf" onChange={handleProofUpload} disabled={uploadingProof} className="w-full text-sm mt-1" />
+                </label>
+              )}
             </Card>
 
             <Card title="Internal & Workflow" icon="🔧">

@@ -5,10 +5,12 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { CRM_STATUS_LABELS, statusBadgeClass } from '../constants/crm';
+import { hasPermission } from '../constants/permissions';
 
 export default function CrmList() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canDelete = hasPermission(user, 'crm', 'delete');
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -56,9 +58,11 @@ export default function CrmList() {
               placeholder="Search by CRM ID, company or service..."
               className="border border-gray-300 rounded-lg px-4 py-2 text-sm w-72 focus:ring-2 focus:ring-navy/30"
             />
-            <Link to="/crm/new" className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow">
-              + New CRM Entry
-            </Link>
+            {hasPermission(user, 'crm', 'create') && (
+              <Link to="/crm/new" className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow">
+                + New CRM Entry
+              </Link>
+            )}
           </div>
         </div>
 
@@ -100,7 +104,7 @@ export default function CrmList() {
                     <td className="px-5 py-3">{entry.submitted_by_name}</td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <Link to={`/crm/${entry.id}`} className="text-navy font-semibold hover:underline">View</Link>
-                      {isAdmin && (
+                      {(isAdmin || canDelete) && (
                         <button
                           type="button"
                           onClick={() => handleDelete(entry)}

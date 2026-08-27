@@ -4,10 +4,12 @@ import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { hasPermission } from '../constants/permissions';
 
 export default function Invoices() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const canDelete = hasPermission(user, 'invoices', 'delete');
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,9 +54,11 @@ export default function Invoices() {
               placeholder="Search by invoice # or client..."
               className="border border-gray-300 rounded-lg px-4 py-2 text-sm w-64 focus:ring-2 focus:ring-navy/30"
             />
-            <Link to="/invoices/new" className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow">
-              + New Invoice
-            </Link>
+            {hasPermission(user, 'invoices', 'create') && (
+              <Link to="/invoices/new" className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow">
+                + New Invoice
+              </Link>
+            )}
           </div>
         </div>
 
@@ -91,7 +95,7 @@ export default function Invoices() {
                     <td className="px-5 py-3">{inv.generated_by_name}</td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <Link to={`/invoices/${inv.id}`} className="text-navy font-semibold hover:underline">View</Link>
-                      {isAdmin && (
+                      {(isAdmin || canDelete) && (
                         <button
                           type="button"
                           onClick={() => handleDelete(inv)}

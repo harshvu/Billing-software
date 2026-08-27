@@ -43,6 +43,20 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  // Stored as TEXT (not the JSON column type) so this works identically on
+  // MySQL 8 (production) and older MariaDB (local dev, no native JSON support).
+  permissions: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    get() {
+      const raw = this.getDataValue('permissions');
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (e) { return null; }
+    },
+    set(value) {
+      this.setDataValue('permissions', value ? JSON.stringify(value) : null);
+    },
+  },
 }, {
   tableName: 'users',
 });

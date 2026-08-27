@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
+import { PERMISSION_SCHEMA } from '../constants/permissions';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -9,6 +10,11 @@ export default function Employees() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', branch: '' });
+
+  const [permEmployee, setPermEmployee] = useState(null);
+  const [permValues, setPermValues] = useState(null);
+  const [loadingPerms, setLoadingPerms] = useState(false);
+  const [savingPerms, setSavingPerms] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -49,6 +55,41 @@ export default function Employees() {
       load();
     } catch (err) {
       toast.error('Failed to update employee status.');
+    }
+  };
+
+  const openPermissions = async (emp) => {
+    setPermEmployee(emp);
+    setLoadingPerms(true);
+    try {
+      const res = await api.get(`/employees/${emp.id}/permissions`);
+      setPermValues(res.data.permissions);
+    } catch (err) {
+      toast.error('Failed to load permissions.');
+      setPermEmployee(null);
+    } finally {
+      setLoadingPerms(false);
+    }
+  };
+
+  const togglePerm = (moduleKey, actionKey) => {
+    setPermValues((prev) => ({
+      ...prev,
+      [moduleKey]: { ...prev[moduleKey], [actionKey]: !prev[moduleKey][actionKey] },
+    }));
+  };
+
+  const savePermissions = async () => {
+    setSavingPerms(true);
+    try {
+      await api.put(`/employees/${permEmployee.id}/permissions`, { permissions: permValues });
+      toast.success(`Permissions updated for ${permEmployee.name}.`);
+      setPermEmployee(null);
+      setPermValues(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update permissions.');
+    } finally {
+      setSavingPerms(false);
     }
   };
 
@@ -140,6 +181,9 @@ export default function Employees() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right space-x-3">
+                      <button onClick={() => openPermissions(emp)} className="text-navy font-semibold hover:underline text-xs">
+                        🔐 Permissions
+                      </button>
                       <button onClick={() => toggleStatus(emp)} className="text-navy font-semibold hover:underline text-xs">
                         {emp.status === 'active' ? 'Deactivate' : 'Activate'}
                       </button>
@@ -154,6 +198,57 @@ export default function Employees() {
           )}
         </div>
       </div>
+
+      {permEmployee && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setPermEmployee(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+            <div className="bg-navy rounded-t-xl px-6 py-4 flex items-center justify-between">
+              <div>
+                <div className="text-white font-bold">🔐 Permissions</div>
+                <div className="text-gray-300 text-xs">{permEmployee.name} · {permEmployee.email}</div>
+              </div>
+              <button onClick={() => setPermEmployee(null)} className="text-white text-xl leading-none">&times;</button>
+            </div>
+
+            <div className="p-6">
+              {loadingPerms || !permValues ? (
+                <div className="text-sm text-gray-500">Loading...</div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(PERMISSION_SCHEMA).map(([moduleKey, moduleDef]) => (
+                    <div key={moduleKey}>
+                      <div className="text-xs font-bold text-navy uppercase mb-2">{moduleDef.label}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {Object.entries(moduleDef.actions).map(([actionKey, actionLabel]) => (
+                          <label key={actionKey} className="flex items-center gap-2 text-sm border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50">
+                            <input
+                              type="checkbox"
+                              checked={!!permValues[moduleKey]?.[actionKey]}
+                              onChange={() => togglePerm(moduleKey, actionKey)}
+                              className="w-4 h-4"
+                            />
+                            {actionLabel}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-400">
+                    Employee management and Company Settings always stay admin-only, regardless of these toggles.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 pb-6 flex justify-end gap-3">
+              <button onClick={() => setPermEmployee(null)} className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 font-semibold text-sm">Cancel</button>
+              <button disabled={savingPerms || loadingPerms} onClick={savePermissions} className="bg-gold text-navy font-bold px-6 py-2.5 rounded-lg shadow disabled:opacity-60">
+                {savingPerms ? 'Saving...' : 'Save Permissions'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
