@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { sequelize, CrmEntry, CrmDocument, User } = require('../models');
 const { CRM_STATUS_VALUES, CRM_STEP_VALUES, CRM_MODE_VALUES } = require('../constants/crm');
+const { inScope } = require('../middleware/scope');
 
 const BACKEND_ROOT = path.join(__dirname, '..', '..');
 
@@ -103,11 +104,13 @@ function computeTotals(entry) {
 
 function canAccess(entry, user) {
   if (user.role === 'admin') return true;
+  if (user.role === 'project_manager') return inScope(entry.submitted_by_id, user) || inScope(entry.assigned_to_id, user);
   return entry.submitted_by_id === user.id || entry.assigned_to_id === user.id;
 }
 
 function isEditable(entry, user) {
   if (user.role === 'admin') return true;
+  if (user.role === 'project_manager') return inScope(entry.submitted_by_id, user) && entry.status !== 'stage8';
   return entry.submitted_by_id === user.id && entry.status !== 'stage8';
 }
 
@@ -189,12 +192,14 @@ exports.createCrmEntry = async (req, res) => {
   }
 };
 
-// GET /api/crm  (admin sees all, employee sees own submitted + assigned to them)
+// GET /api/crm  (admin sees all, PM sees their team's, employee sees own submitted + assigned to them)
 exports.listCrmEntries = async (req, res) => {
   try {
     const where = req.user.role === 'admin'
       ? {}
-      : { [Op.or]: [{ submitted_by_id: req.user.id }, { assigned_to_id: req.user.id }] };
+      : req.user.role === 'project_manager'
+        ? { [Op.or]: [{ submitted_by_id: { [Op.in]: req.user.managedIds } }, { assigned_to_id: { [Op.in]: req.user.managedIds } }] }
+        : { [Op.or]: [{ submitted_by_id: req.user.id }, { assigned_to_id: req.user.id }] };
     const entries = await CrmEntry.findAll({ where, order: [['id', 'DESC']] });
     return res.json({ success: true, entries });
   } catch (err) {
@@ -276,12 +281,15 @@ exports.updateCrmEntry = async (req, res) => {
   }
 };
 
-// PUT /api/crm/:id/status  (admin only) - stage/step/assignment/closure
+// PUT /api/crm/:id/status  (admin, PM within their team, or an employee granted the permission on their own entries) - stage/step/assignment/closure
 exports.updateStatus = async (req, res) => {
   try {
     const entry = await CrmEntry.findByPk(req.params.id);
     if (!entry) {
       return res.status(404).json({ success: false, message: 'CRM entry not found.' });
+    }
+    if (!canAccess(entry, req.user)) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this CRM entry.' });
     }
 
     const { status, current_step, assigned_to_id, lead_closed_by, lead_closed_by_email } = req.body;
@@ -330,7 +338,7 @@ exports.updateRemark = async (req, res) => {
     if (!entry) {
       return res.status(404).json({ success: false, message: 'CRM entry not found.' });
     }
-    if (req.user.role !== 'admin' && entry.assigned_to_id !== req.user.id) {
+    if (!inScope(entry.assigned_to_id, req.user)) {
       return res.status(403).json({ success: false, message: 'You do not have permission to update this remark.' });
     }
     entry.admin_remark = req.body.admin_remark || '';
@@ -350,7 +358,7 @@ exports.uploadPaymentProof = async (req, res) => {
       removeUploadedFile(req.file);
       return res.status(404).json({ success: false, message: 'CRM entry not found.' });
     }
-    if (req.user.role !== 'admin' && entry.submitted_by_id !== req.user.id) {
+    if (!inScope(entry.submitted_by_id, req.user)) {
       removeUploadedFile(req.file);
       return res.status(403).json({ success: false, message: 'You do not have permission to upload for this CRM entry.' });
     }
@@ -405,12 +413,15 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-// DELETE /api/crm/:id  (admin only)
+// DELETE /api/crm/:id  (admin, PM within their team, or an employee granted the permission on their own entries)
 exports.deleteCrmEntry = async (req, res) => {
   try {
     const entry = await CrmEntry.findByPk(req.params.id);
     if (!entry) {
       return res.status(404).json({ success: false, message: 'CRM entry not found.' });
+    }
+    if (!inScope(entry.submitted_by_id, req.user)) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this CRM entry.' });
     }
     if (entry.payment_proof_path) {
       fs.unlink(path.join(BACKEND_ROOT, entry.payment_proof_path), () => {});

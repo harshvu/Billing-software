@@ -33,7 +33,7 @@ export default function App() {
         <Route path="/crm/new" element={<ProtectedRoute><CrmSubmit /></ProtectedRoute>} />
         <Route path="/crm/:id" element={<ProtectedRoute><CrmDetail /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/employees" element={<ProtectedRoute roles={['admin']}><Employees /></ProtectedRoute>} />
+        <Route path="/employees" element={<ProtectedRoute roles={['admin', 'project_manager']}><Employees /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute roles={['admin']}><Settings /></ProtectedRoute>} />
         <Route path="*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       </Routes>

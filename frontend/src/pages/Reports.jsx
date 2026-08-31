@@ -19,6 +19,7 @@ const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractio
 export default function Reports() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isPM = user?.role === 'project_manager';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +33,7 @@ export default function Reports() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-navy">Reports</h1>
-          <p className="text-sm text-gray-500">{isAdmin ? 'Company-wide CRM and invoicing activity summary' : 'Your CRM and invoicing activity summary'}</p>
+          <p className="text-sm text-gray-500">{isAdmin ? 'Company-wide CRM and invoicing activity summary' : isPM ? "Your team's CRM and invoicing activity summary" : 'Your CRM and invoicing activity summary'}</p>
         </div>
 
         {loading || !data ? (
@@ -51,10 +52,10 @@ export default function Reports() {
               <StatCard label="Total Tax Invoice Amount" value={fmt(data.totals.tax_amount)} accent="text-green-600" icon="💰" />
             </div>
 
-            {isAdmin && data.byEmployee && (
+            {(isAdmin || isPM) && data.byEmployee && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
-                  <h2 className="font-bold text-navy">Employee-wise Breakdown</h2>
+                  <h2 className="font-bold text-navy">{isPM ? 'Team Breakdown' : 'Employee-wise Breakdown'}</h2>
                   <p className="text-xs text-gray-400 mt-0.5">CRM and invoice activity per user</p>
                 </div>
                 {data.byEmployee.length === 0 ? (

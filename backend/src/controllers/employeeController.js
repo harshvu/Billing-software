@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 const { User, Invoice } = require('../models');
 const { DEFAULT_EMPLOYEE_PERMISSIONS, PERMISSION_SCHEMA, withDefaults } = require('../constants/permissions');
+
+const MANAGEABLE_ROLES = ['employee', 'project_manager'];
 
 const sanitize = (u) => ({
   id: u.id,
@@ -10,20 +13,33 @@ const sanitize = (u) => ({
   phone: u.phone,
   branch: u.branch,
   status: u.status,
+  manager_id: u.manager_id,
   createdAt: u.createdAt,
-  permissions: withDefaults(u.permissions),
+  // Project Managers aren't gated by the permission toggles (they're scoped by
+  // team instead — see middleware/scope.js), so this is only meaningful for employees.
+  permissions: u.role === 'employee' ? withDefaults(u.permissions) : null,
 });
 
-// POST /api/employees  (admin only) - create a new employee
+// POST /api/employees  (admin only) - create a new employee or project manager
 exports.createEmployee = async (req, res) => {
   try {
-    const { name, email, password, phone, branch } = req.body;
+    const { name, email, password, phone, branch, role, manager_id } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
     }
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+    const finalRole = role === 'project_manager' ? 'project_manager' : 'employee';
+
+    let finalManagerId = null;
+    if (finalRole === 'employee' && manager_id) {
+      const manager = await User.findOne({ where: { id: manager_id, role: 'project_manager' } });
+      if (!manager) {
+        return res.status(400).json({ success: false, message: 'Selected project manager not found.' });
+      }
+      finalManagerId = manager.id;
     }
 
     const existing = await User.findOne({ where: { email: email.toLowerCase().trim() } });
@@ -37,26 +53,33 @@ exports.createEmployee = async (req, res) => {
       name,
       email: email.toLowerCase().trim(),
       password: hashed,
-      role: 'employee',
+      role: finalRole,
       phone,
       branch,
       status: 'active',
       created_by: req.user.id,
-      permissions: DEFAULT_EMPLOYEE_PERMISSIONS,
+      manager_id: finalManagerId,
+      permissions: finalRole === 'employee' ? DEFAULT_EMPLOYEE_PERMISSIONS : null,
     });
 
-    return res.status(201).json({ success: true, message: 'Employee created successfully.', employee: sanitize(employee) });
+    return res.status(201).json({ success: true, message: `${finalRole === 'project_manager' ? 'Project manager' : 'Employee'} created successfully.`, employee: sanitize(employee) });
   } catch (err) {
     console.error('Create employee error:', err);
     return res.status(500).json({ success: false, message: 'Server error while creating employee.' });
   }
 };
 
-// GET /api/employees (admin only) - list all employees
+// GET /api/employees
+// admin: sees every employee + project manager.
+// project manager: sees only the employees assigned to them.
+// employee (with crm.updateWorkflow permission): sees everyone, for assignment dropdowns — unchanged legacy behavior.
 exports.listEmployees = async (req, res) => {
   try {
+    const where = req.user.role === 'project_manager'
+      ? { role: 'employee', manager_id: req.user.id }
+      : { role: { [Op.in]: MANAGEABLE_ROLES } };
     const employees = await User.findAll({
-      where: { role: 'employee' },
+      where,
       order: [['createdAt', 'DESC']],
     });
     return res.json({ success: true, employees: employees.map(sanitize) });
@@ -66,13 +89,13 @@ exports.listEmployees = async (req, res) => {
   }
 };
 
-// PUT /api/employees/:id (admin only) - update employee details / status
+// PUT /api/employees/:id (admin only) - update employee/PM details, role, manager, or status
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, branch, status, password } = req.body;
+    const { name, phone, branch, status, password, role, manager_id } = req.body;
 
-    const employee = await User.findOne({ where: { id, role: 'employee' } });
+    const employee = await User.findOne({ where: { id, role: { [Op.in]: MANAGEABLE_ROLES } } });
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
@@ -86,6 +109,29 @@ exports.updateEmployee = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
       }
       employee.password = await bcrypt.hash(password, 10);
+    }
+
+    if (role && MANAGEABLE_ROLES.includes(role) && role !== employee.role) {
+      employee.role = role;
+      if (role === 'project_manager') {
+        // A project manager doesn't report to another project manager in this model.
+        employee.manager_id = null;
+        employee.permissions = null;
+      } else {
+        employee.permissions = DEFAULT_EMPLOYEE_PERMISSIONS;
+      }
+    }
+
+    if (manager_id !== undefined && employee.role === 'employee') {
+      if (!manager_id) {
+        employee.manager_id = null;
+      } else {
+        const manager = await User.findOne({ where: { id: manager_id, role: 'project_manager' } });
+        if (!manager) {
+          return res.status(400).json({ success: false, message: 'Selected project manager not found.' });
+        }
+        employee.manager_id = manager.id;
+      }
     }
 
     await employee.save();
@@ -144,7 +190,7 @@ exports.updateEmployeePermissions = async (req, res) => {
 exports.deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const employee = await User.findOne({ where: { id, role: 'employee' } });
+    const employee = await User.findOne({ where: { id, role: { [Op.in]: MANAGEABLE_ROLES } } });
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
@@ -154,13 +200,13 @@ exports.deleteEmployee = async (req, res) => {
       // Preserve invoice history integrity - deactivate instead of hard delete
       employee.status = 'inactive';
       await employee.save();
-      return res.json({ success: true, message: 'Employee has existing invoices, so the account was deactivated instead of deleted.' });
+      return res.json({ success: true, message: 'This account has existing invoices, so it was deactivated instead of deleted.' });
     }
 
     await employee.destroy();
-    return res.json({ success: true, message: 'Employee deleted successfully.' });
+    return res.json({ success: true, message: 'Removed successfully.' });
   } catch (err) {
     console.error('Delete employee error:', err);
-    return res.status(500).json({ success: false, message: 'Server error while deleting employee.' });
+    return res.status(500).json({ success: false, message: 'Server error while removing the account.' });
   }
 };

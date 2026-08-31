@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { hasPermission } from '../constants/permissions';
 import logo from '../assets/logo.png';
 
+const ROLE_LABELS = { admin: 'Admin', project_manager: 'Project Manager', employee: 'Employee' };
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -29,18 +31,18 @@ export default function Navbar() {
           {hasPermission(user, 'invoices', 'menu') && <Link to="/invoices" className="hover:text-gold transition">Invoices</Link>}
           {hasPermission(user, 'crm', 'menu') && <Link to="/crm" className="hover:text-gold transition">CRM</Link>}
           {hasPermission(user, 'reports', 'menu') && <Link to="/reports" className="hover:text-gold transition">Reports</Link>}
+          {(user?.role === 'admin' || user?.role === 'project_manager') && (
+            <Link to="/employees" className="hover:text-gold transition">Employees</Link>
+          )}
           {user?.role === 'admin' && (
-            <>
-              <Link to="/employees" className="hover:text-gold transition">Employees</Link>
-              <Link to="/settings" className="hover:text-gold transition">Settings</Link>
-            </>
+            <Link to="/settings" className="hover:text-gold transition">Settings</Link>
           )}
         </div>
 
         <div className="flex items-center gap-3">
           <div className="bg-white/10 rounded-full px-3 py-1.5 text-xs">
             Welcome, <span className="font-semibold">{user?.name}</span>
-            <span className="ml-1 text-gold capitalize">({user?.role})</span>
+            <span className="ml-1 text-gold">({ROLE_LABELS[user?.role] || user?.role})</span>
           </div>
           <button
             onClick={handleLogout}

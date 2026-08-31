@@ -43,7 +43,9 @@ const requirePermission = (moduleKey, action) => (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: 'No token provided. Please login.' });
   }
-  if (req.user.role === 'admin') return next();
+  // Project Managers are scoped by team (see middleware/scope.js), not by the
+  // per-action permission toggles that apply to plain employees.
+  if (req.user.role === 'admin' || req.user.role === 'project_manager') return next();
 
   const perms = withDefaults(req.user.permissions);
   if (perms[moduleKey] && perms[moduleKey][action]) return next();

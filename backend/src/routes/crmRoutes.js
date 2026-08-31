@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, requireRole, requirePermission } = require('../middleware/auth');
+const { attachManagedScope } = require('../middleware/scope');
 const { uploadPaymentProof, uploadDocument } = require('../middleware/upload');
 const {
   createCrmEntry, listCrmEntries, getCrmEntry, updateCrmEntry,
@@ -8,7 +9,7 @@ const {
   uploadDocument: uploadDocumentHandler, deleteCrmEntry,
 } = require('../controllers/crmController');
 
-router.use(verifyToken, requireRole('admin', 'employee'));
+router.use(verifyToken, requireRole('admin', 'employee', 'project_manager'), attachManagedScope);
 
 router.post('/', requirePermission('crm', 'create'), createCrmEntry);
 router.get('/', requirePermission('crm', 'view'), listCrmEntries);

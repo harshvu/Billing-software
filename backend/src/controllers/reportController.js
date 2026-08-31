@@ -1,11 +1,14 @@
+const { Op } = require('sequelize');
 const { sequelize, Invoice, CrmEntry } = require('../models');
 
-// GET /api/reports/summary  (admin sees global totals + employee-wise breakdown; employee sees own totals only)
+// GET /api/reports/summary  (admin sees global totals + everyone's breakdown;
+// project manager sees their team's totals + team breakdown; employee sees own totals only)
 exports.getSummary = async (req, res) => {
   try {
     const isAdmin = req.user.role === 'admin';
-    const invoiceWhere = isAdmin ? {} : { generated_by_id: req.user.id };
-    const crmWhere = isAdmin ? {} : { submitted_by_id: req.user.id };
+    const isPM = req.user.role === 'project_manager';
+    const invoiceWhere = isAdmin ? {} : isPM ? { generated_by_id: { [Op.in]: req.user.managedIds } } : { generated_by_id: req.user.id };
+    const crmWhere = isAdmin ? {} : isPM ? { submitted_by_id: { [Op.in]: req.user.managedIds } } : { submitted_by_id: req.user.id };
 
     const [invoiceRows, totalCrm] = await Promise.all([
       Invoice.findAll({
@@ -33,12 +36,13 @@ exports.getSummary = async (req, res) => {
     });
 
     let byEmployee = null;
-    if (isAdmin) {
+    if (isAdmin || isPM) {
       const crmRows = await CrmEntry.findAll({
         attributes: [
           'submitted_by_id', 'submitted_by_name',
           [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
         ],
+        where: crmWhere,
         group: ['submitted_by_id', 'submitted_by_name'],
         raw: true,
       });

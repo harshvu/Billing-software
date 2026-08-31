@@ -34,10 +34,12 @@ export const PERMISSION_SCHEMA = {
   },
 };
 
-// Admins always have every permission; employees fall back to their stored
+// Admins always have every permission. Project Managers are scoped by team
+// (not by these toggles) but otherwise act like an admin within that scope, so
+// they pass every check here too. Employees fall back to their stored
 // permissions object (already defaulted server-side, but guard anyway).
 export const hasPermission = (user, moduleKey, action) => {
   if (!user) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin' || user.role === 'project_manager') return true;
   return !!(user.permissions && user.permissions[moduleKey] && user.permissions[moduleKey][action]);
 };

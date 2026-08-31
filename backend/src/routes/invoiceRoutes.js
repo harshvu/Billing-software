@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, requireRole, requirePermission } = require('../middleware/auth');
+const { attachManagedScope } = require('../middleware/scope');
 const {
   createInvoice, listInvoices, getInvoice, downloadInvoicePDF, convertToTaxInvoice, generateSimpleInvoice, deleteInvoice,
 } = require('../controllers/invoiceController');
 
-router.use(verifyToken, requireRole('admin', 'employee'));
+router.use(verifyToken, requireRole('admin', 'employee', 'project_manager'), attachManagedScope);
 
 router.post('/', requirePermission('invoices', 'create'), createInvoice);
 router.get('/', requirePermission('invoices', 'view'), listInvoices);

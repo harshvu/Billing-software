@@ -2,19 +2,28 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 import { PERMISSION_SCHEMA } from '../constants/permissions';
 
+const emptyForm = { name: '', email: '', password: '', phone: '', branch: '', role: 'employee', manager_id: '' };
+
 export default function Employees() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isPM = user?.role === 'project_manager';
+
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', branch: '' });
+  const [form, setForm] = useState(emptyForm);
 
   const [permEmployee, setPermEmployee] = useState(null);
   const [permValues, setPermValues] = useState(null);
   const [loadingPerms, setLoadingPerms] = useState(false);
   const [savingPerms, setSavingPerms] = useState(false);
+
+  const managers = employees.filter((e) => e.role === 'project_manager');
 
   const load = async () => {
     setLoading(true);
@@ -36,13 +45,14 @@ export default function Employees() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post('/employees', form);
-      toast.success('Employee created successfully.');
-      setForm({ name: '', email: '', password: '', phone: '', branch: '' });
+      const payload = { ...form, manager_id: form.role === 'employee' ? (form.manager_id || null) : null };
+      await api.post('/employees', payload);
+      toast.success(`${form.role === 'project_manager' ? 'Project manager' : 'Employee'} created successfully.`);
+      setForm(emptyForm);
       setShowForm(false);
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create employee.');
+      toast.error(err.response?.data?.message || 'Failed to create account.');
     } finally {
       setSaving(false);
     }
@@ -51,10 +61,20 @@ export default function Employees() {
   const toggleStatus = async (emp) => {
     try {
       await api.put(`/employees/${emp.id}`, { status: emp.status === 'active' ? 'inactive' : 'active' });
-      toast.success(`Employee ${emp.status === 'active' ? 'deactivated' : 'activated'}.`);
+      toast.success(`${emp.name} ${emp.status === 'active' ? 'deactivated' : 'activated'}.`);
       load();
     } catch (err) {
-      toast.error('Failed to update employee status.');
+      toast.error('Failed to update status.');
+    }
+  };
+
+  const reassignManager = async (emp, managerId) => {
+    try {
+      await api.put(`/employees/${emp.id}`, { manager_id: managerId || null });
+      toast.success(`${emp.name}'s manager updated.`);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update manager.');
     }
   };
 
@@ -100,9 +120,57 @@ export default function Employees() {
       toast.success(res.data.message);
       load();
     } catch (err) {
-      toast.error('Failed to remove employee.');
+      toast.error('Failed to remove.');
     }
   };
+
+  if (isPM) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Navbar />
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-navy">My Team</h1>
+            <p className="text-sm text-gray-500">Employees assigned to you — you have full access to their invoices and CRM leads</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {loading ? (
+              <div className="p-6 text-sm text-gray-500">Loading...</div>
+            ) : employees.length === 0 ? (
+              <div className="p-6 text-sm text-gray-500">No employees have been assigned to you yet. Ask an admin to assign some.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-gray-500 uppercase text-xs">
+                    <th className="text-left px-5 py-3">Name</th>
+                    <th className="text-left px-5 py-3">Email</th>
+                    <th className="text-left px-5 py-3">Branch</th>
+                    <th className="text-left px-5 py-3">Phone</th>
+                    <th className="text-left px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp) => (
+                    <tr key={emp.id} className="border-t border-gray-100 hover:bg-gray-50">
+                      <td className="px-5 py-3 font-semibold text-navy">{emp.name}</td>
+                      <td className="px-5 py-3">{emp.email}</td>
+                      <td className="px-5 py-3">{emp.branch || '-'}</td>
+                      <td className="px-5 py-3">{emp.phone || '-'}</td>
+                      <td className="px-5 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${emp.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                          {emp.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -111,13 +179,13 @@ export default function Employees() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-navy">Employees</h1>
-            <p className="text-sm text-gray-500">Create and manage employee logins</p>
+            <p className="text-sm text-gray-500">Create and manage employee &amp; project manager logins</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow"
           >
-            {showForm ? 'Close' : '+ Add Employee'}
+            {showForm ? 'Close' : '+ Add Account'}
           </button>
         </div>
 
@@ -143,9 +211,25 @@ export default function Employees() {
               <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Branch</label>
               <input name="branch" value={form.branch} onChange={handleChange} placeholder="e.g. Vadodara" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30" />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Role</label>
+              <select name="role" value={form.role} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30">
+                <option value="employee">Employee</option>
+                <option value="project_manager">Project Manager</option>
+              </select>
+            </div>
+            {form.role === 'employee' && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Reports To (Project Manager)</label>
+                <select name="manager_id" value={form.manager_id} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-navy/30">
+                  <option value="">-- None --</option>
+                  {managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="md:col-span-2 flex justify-end">
               <button disabled={saving} type="submit" className="bg-gold text-navy font-bold px-6 py-2.5 rounded-lg disabled:opacity-60">
-                {saving ? 'Creating...' : 'Create Employee'}
+                {saving ? 'Creating...' : form.role === 'project_manager' ? 'Create Project Manager' : 'Create Employee'}
               </button>
             </div>
           </form>
@@ -155,15 +239,15 @@ export default function Employees() {
           {loading ? (
             <div className="p-6 text-sm text-gray-500">Loading...</div>
           ) : employees.length === 0 ? (
-            <div className="p-6 text-sm text-gray-500">No employees yet. Click "Add Employee" to create one.</div>
+            <div className="p-6 text-sm text-gray-500">No accounts yet. Click "Add Account" to create one.</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-gray-500 uppercase text-xs">
                   <th className="text-left px-5 py-3">Name</th>
                   <th className="text-left px-5 py-3">Email</th>
-                  <th className="text-left px-5 py-3">Branch</th>
-                  <th className="text-left px-5 py-3">Phone</th>
+                  <th className="text-left px-5 py-3">Role</th>
+                  <th className="text-left px-5 py-3">Reports To</th>
                   <th className="text-left px-5 py-3">Status</th>
                   <th className="text-right px-5 py-3">Actions</th>
                 </tr>
@@ -173,17 +257,34 @@ export default function Employees() {
                   <tr key={emp.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-3 font-semibold text-navy">{emp.name}</td>
                     <td className="px-5 py-3">{emp.email}</td>
-                    <td className="px-5 py-3">{emp.branch || '-'}</td>
-                    <td className="px-5 py-3">{emp.phone || '-'}</td>
+                    <td className="px-5 py-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${emp.role === 'project_manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {emp.role === 'project_manager' ? 'Project Manager' : 'Employee'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {emp.role === 'employee' ? (
+                        <select
+                          value={emp.manager_id || ''}
+                          onChange={(e) => reassignManager(emp, e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2 py-1 text-xs"
+                        >
+                          <option value="">Unassigned</option>
+                          {managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                      ) : '-'}
+                    </td>
                     <td className="px-5 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${emp.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
                         {emp.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right space-x-3">
-                      <button onClick={() => openPermissions(emp)} className="text-navy font-semibold hover:underline text-xs">
-                        🔐 Permissions
-                      </button>
+                    <td className="px-5 py-3 text-right space-x-3 whitespace-nowrap">
+                      {emp.role === 'employee' && (
+                        <button onClick={() => openPermissions(emp)} className="text-navy font-semibold hover:underline text-xs">
+                          🔐 Permissions
+                        </button>
+                      )}
                       <button onClick={() => toggleStatus(emp)} className="text-navy font-semibold hover:underline text-xs">
                         {emp.status === 'active' ? 'Deactivate' : 'Activate'}
                       </button>

@@ -22,7 +22,7 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM('admin', 'employee'),
+    type: DataTypes.ENUM('admin', 'employee', 'project_manager'),
     allowNull: false,
     defaultValue: 'employee',
   },
@@ -32,6 +32,11 @@ const User = sequelize.define('User', {
   },
   branch: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  // The Project Manager this employee reports to. Only meaningful for role='employee'.
+  manager_id: {
+    type: DataTypes.INTEGER,
     allowNull: true,
   },
   status: {

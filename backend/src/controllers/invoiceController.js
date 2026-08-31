@@ -1,6 +1,8 @@
+const { Op } = require('sequelize');
 const { sequelize, Invoice, InvoiceItem, CompanySetting, User } = require('../models');
 const generateInvoiceNumber = require('../utils/generateInvoiceNumber');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
+const { inScope } = require('../middleware/scope');
 
 function computeTotals(items, applyGst, gstRate) {
   const subTotal = items.reduce((sum, it) => sum + (Number(it.qty) * Number(it.rate)), 0);
@@ -78,10 +80,14 @@ exports.createInvoice = async (req, res) => {
   }
 };
 
-// GET /api/invoices  (admin sees all, employee sees own)
+// GET /api/invoices  (admin sees all, project manager sees their team's, employee sees own)
 exports.listInvoices = async (req, res) => {
   try {
-    const where = req.user.role === 'admin' ? {} : { generated_by_id: req.user.id };
+    const where = req.user.role === 'admin'
+      ? {}
+      : req.user.role === 'project_manager'
+        ? { generated_by_id: { [Op.in]: req.user.managedIds } }
+        : { generated_by_id: req.user.id };
     const invoices = await Invoice.findAll({
       where,
       order: [['id', 'DESC']],
@@ -101,7 +107,7 @@ exports.getInvoice = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
     }
-    if (req.user.role !== 'admin' && invoice.generated_by_id !== req.user.id) {
+    if (!inScope(invoice.generated_by_id, req.user)) {
       return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
     return res.json({ success: true, invoice });
@@ -118,7 +124,7 @@ exports.downloadInvoicePDF = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
     }
-    if (req.user.role !== 'admin' && invoice.generated_by_id !== req.user.id) {
+    if (!inScope(invoice.generated_by_id, req.user)) {
       return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
 
@@ -143,12 +149,15 @@ exports.downloadInvoicePDF = async (req, res) => {
   }
 };
 
-// PUT /api/invoices/:id/convert-to-tax  (admin only)
+// PUT /api/invoices/:id/convert-to-tax  (admin, or PM/employee granted the permission, within their scope)
 exports.convertToTaxInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findByPk(req.params.id, { include: [{ model: InvoiceItem, as: 'items' }] });
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+    if (!inScope(invoice.generated_by_id, req.user)) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
     if (invoice.invoice_type === 'tax') {
       return res.status(400).json({ success: false, message: 'This invoice is already a Tax Invoice.' });
@@ -174,6 +183,10 @@ exports.generateSimpleInvoice = async (req, res) => {
     if (!source) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+    if (!inScope(source.generated_by_id, req.user)) {
+      await t.rollback();
+      return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
     if (source.invoice_type === 'simple') {
       await t.rollback();
@@ -225,7 +238,7 @@ exports.generateSimpleInvoice = async (req, res) => {
   }
 };
 
-// DELETE /api/invoices/:id  (admin only)
+// DELETE /api/invoices/:id  (admin, or PM/employee granted the permission, within their scope)
 exports.deleteInvoice = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -233,6 +246,10 @@ exports.deleteInvoice = async (req, res) => {
     if (!invoice) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
+    }
+    if (!inScope(invoice.generated_by_id, req.user)) {
+      await t.rollback();
+      return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
     await InvoiceItem.destroy({ where: { invoice_id: invoice.id }, transaction: t });
     await invoice.destroy({ transaction: t });
