@@ -3,10 +3,10 @@ const CRM_STATUSES = [
   { value: 'stage2', label: 'Stage 2 - Assigned' },
   { value: 'stage3', label: 'Stage 3 - Contacted' },
   { value: 'stage4', label: 'Stage 4 - Payment & Billing Confirmed' },
-  { value: 'stage5', label: 'Stage 5 - Service & Deal Finalized' },
-  { value: 'stage6', label: 'Stage 6 - Documents Collected' },
-  { value: 'stage7', label: 'Stage 7 - Payment Verification' },
-  { value: 'stage8', label: 'Stage 8 - Approved / Rejection' },
+  { value: 'stage5', label: 'Stage 5 - Documents Collected' },
+  { value: 'stage6', label: 'Stage 6 - Payment Verification' },
+  { value: 'stage7', label: 'Stage 7 - Application Submission' },
+  { value: 'stage8', label: 'Stage 8 - Approved / Rejected' },
 ];
 
 const CRM_STEPS = [

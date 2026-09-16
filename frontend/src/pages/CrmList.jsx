@@ -41,6 +41,7 @@ export default function CrmList() {
   };
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-');
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -76,6 +77,7 @@ export default function CrmList() {
               <thead>
                 <tr className="bg-gray-50 text-gray-500 uppercase text-xs">
                   <th className="text-left px-5 py-3">CRM ID</th>
+                  <th className="text-left px-5 py-3">Date</th>
                   <th className="text-left px-5 py-3">Company</th>
                   <th className="text-left px-5 py-3">Service</th>
                   <th className="text-left px-5 py-3">Status</th>
@@ -88,6 +90,7 @@ export default function CrmList() {
                 {filtered.map((entry) => (
                   <tr key={entry.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-5 py-3 font-semibold text-navy">#{entry.id}</td>
+                    <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{fmtDate(entry.createdAt)}</td>
                     <td className="px-5 py-3">{entry.company_name}</td>
                     <td className="px-5 py-3 text-gray-600">
                       {entry.service}

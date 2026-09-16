@@ -49,7 +49,7 @@ exports.createInvoice = async (req, res) => {
       client_state,
       apply_gst: !!apply_gst,
       gst_rate: rate,
-      gst_type: gst_type || 'igst',
+      gst_type: gst_type || 'cgst_sgst',
       sub_total: subTotal,
       gst_amount: gstAmount,
       grand_total: grandTotal,

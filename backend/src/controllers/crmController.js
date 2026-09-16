@@ -380,34 +380,42 @@ exports.uploadPaymentProof = async (req, res) => {
 };
 
 // POST /api/crm/:id/documents  (admin, submitter, or assignee)
+// Accepts one or many files at once under the 'files' field.
 exports.uploadDocument = async (req, res) => {
+  const files = req.files || [];
   try {
     const entry = await CrmEntry.findByPk(req.params.id);
     if (!entry) {
-      removeUploadedFile(req.file);
+      files.forEach(removeUploadedFile);
       return res.status(404).json({ success: false, message: 'CRM entry not found.' });
     }
     if (!canAccess(entry, req.user)) {
-      removeUploadedFile(req.file);
+      files.forEach(removeUploadedFile);
       return res.status(403).json({ success: false, message: 'You do not have access to this CRM entry.' });
     }
-    if (!req.file) {
+    if (files.length === 0) {
       return res.status(400).json({ success: false, message: 'No file uploaded.' });
     }
 
-    const doc = await CrmDocument.create({
+    const baseTitle = req.body.title;
+    const docs = await Promise.all(files.map((file) => CrmDocument.create({
       crm_entry_id: entry.id,
       client_phone_normalized: entry.client_phone_normalized,
-      title: req.body.title || req.file.originalname,
+      title: baseTitle ? (files.length > 1 ? `${baseTitle} - ${file.originalname}` : baseTitle) : file.originalname,
       doc_type: req.body.doc_type || 'General',
-      file_path: `/uploads/crm/documents/${req.file.filename}`,
-      original_filename: req.file.originalname,
+      file_path: `/uploads/crm/documents/${file.filename}`,
+      original_filename: file.originalname,
       uploaded_by_id: req.user.id,
       uploaded_by_name: req.user.name,
+    })));
+    return res.status(201).json({
+      success: true,
+      message: `${docs.length} document${docs.length > 1 ? 's' : ''} uploaded.`,
+      document: docs[0],
+      documents: docs,
     });
-    return res.status(201).json({ success: true, message: 'Document uploaded.', document: doc });
   } catch (err) {
-    removeUploadedFile(req.file);
+    files.forEach(removeUploadedFile);
     console.error('Upload CRM document error:', err);
     return res.status(500).json({ success: false, message: 'Server error while uploading document.' });
   }

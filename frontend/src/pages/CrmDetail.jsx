@@ -93,16 +93,16 @@ export default function CrmDetail() {
   const handleDocUpload = async (e) => {
     e.preventDefault();
     const fileInput = e.target.elements.docFile;
-    const file = fileInput.files[0];
-    if (!file) return toast.error('Choose a file first.');
+    const files = fileInput.files;
+    if (!files || files.length === 0) return toast.error('Choose at least one file.');
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', docTitle || file.name);
+    Array.from(files).forEach((file) => formData.append('files', file));
+    formData.append('title', docTitle);
     formData.append('doc_type', docType);
     setUploadingDoc(true);
     try {
-      await api.post(`/crm/${id}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Document uploaded.');
+      const res = await api.post(`/crm/${id}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success(res.data.message || 'Document(s) uploaded.');
       setDocTitle('');
       fileInput.value = '';
       load();
@@ -297,9 +297,10 @@ export default function CrmDetail() {
                   <select value={docType} onChange={(e) => setDocType(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     {CRM_DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <input type="file" name="docFile" className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2" />
+                  <input type="file" name="docFile" multiple className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2" />
+                  <p className="text-xs text-gray-400 md:col-span-2 -mt-2">Select one file, or hold Ctrl/Cmd (or Shift) to select multiple files/images at once.</p>
                   <button disabled={uploadingDoc} type="submit" className="md:col-span-2 bg-navy hover:bg-navy-dark transition text-white font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-60">
-                    {uploadingDoc ? 'Uploading...' : '⬆ Upload Client Document'}
+                    {uploadingDoc ? 'Uploading...' : '⬆ Upload Client Document(s)'}
                   </button>
                 </form>
               )}

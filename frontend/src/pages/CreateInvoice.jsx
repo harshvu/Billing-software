@@ -23,7 +23,7 @@ export default function CreateInvoice() {
 
   const [applyGst, setApplyGst] = useState(true);
   const [gstState, setGstState] = useState('');
-  const [gstType, setGstType] = useState('igst');
+  const gstType = 'cgst_sgst';
 
   const [items, setItems] = useState([firstItem()]);
   const [remarks, setRemarks] = useState('');
@@ -148,10 +148,9 @@ export default function CreateInvoice() {
                     <option value="">-- Select State for GST --</option>
                     {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <select value={gstType} onChange={(e) => setGstType(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="igst">IGST ({gstRate}%)</option>
-                    <option value="cgst_sgst">CGST + SGST ({gstRate}%)</option>
-                  </select>
+                  <div className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-semibold flex items-center">
+                    CGST + SGST ({gstRate}%)
+                  </div>
                 </div>
               )}
             </div>

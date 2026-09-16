@@ -18,7 +18,7 @@ router.put('/:id', updateCrmEntry);
 router.put('/:id/status', requirePermission('crm', 'updateWorkflow'), updateStatus);
 router.put('/:id/remark', updateRemark);
 router.post('/:id/payment-proof', requirePermission('crm', 'uploadPaymentProof'), uploadPaymentProof.single('file'), uploadPaymentProofHandler);
-router.post('/:id/documents', requirePermission('crm', 'uploadDocument'), uploadDocument.single('file'), uploadDocumentHandler);
+router.post('/:id/documents', requirePermission('crm', 'uploadDocument'), uploadDocument.array('files', 20), uploadDocumentHandler);
 router.delete('/:id', requirePermission('crm', 'delete'), deleteCrmEntry);
 
 module.exports = router;
