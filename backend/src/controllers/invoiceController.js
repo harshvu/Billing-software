@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { sequelize, Invoice, InvoiceItem, CompanySetting, User } = require('../models');
-const generateInvoiceNumber = require('../utils/generateInvoiceNumber');
+const { generateBillNumber, generateProformaNumber } = require('../utils/generateInvoiceNumber');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { inScope } = require('../middleware/scope');
 
@@ -34,7 +34,7 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'At least one line item is required.' });
     }
 
-    const invoiceNumber = await generateInvoiceNumber();
+    const invoiceNumber = await generateProformaNumber();
     const rate = apply_gst ? (gst_rate || 18) : 0;
     const { subTotal, gstAmount, grandTotal } = computeTotals(items, apply_gst, rate);
 
@@ -165,9 +165,16 @@ exports.convertToTaxInvoice = async (req, res) => {
     if (invoice.invoice_type === 'tax') {
       return res.status(400).json({ success: false, message: 'This invoice is already a Tax Invoice.' });
     }
+    if (invoice.invoice_type !== 'proforma') {
+      return res.status(400).json({ success: false, message: 'Only a Proforma Invoice can be converted to a Tax Invoice.' });
+    }
+    // The Tax Invoice takes the next number in the bill series (e.g. 26-27/001). The
+    // Proforma's own INV- number is kept as a reference so it is never lost.
+    invoice.proforma_number = invoice.invoice_number;
+    invoice.invoice_number = await generateBillNumber();
     invoice.invoice_type = 'tax';
     await invoice.save();
-    return res.json({ success: true, message: 'Invoice converted to Tax Invoice.', invoice });
+    return res.json({ success: true, message: `Invoice converted to Tax Invoice ${invoice.invoice_number}.`, invoice });
   } catch (err) {
     console.error('Convert to tax invoice error:', err);
     return res.status(500).json({ success: false, message: 'Server error while converting invoice.' });
@@ -196,7 +203,7 @@ exports.generateSimpleInvoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'This is already a simple Invoice.' });
     }
 
-    const invoiceNumber = await generateInvoiceNumber();
+    const invoiceNumber = await generateBillNumber();
 
     const invoice = await Invoice.create({
       invoice_number: invoiceNumber,

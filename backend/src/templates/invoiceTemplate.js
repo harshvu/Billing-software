@@ -179,6 +179,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
         <div class="field-box">
           <div class="field-label">Invoice Number</div>
           <div class="field-value">${invoice.invoice_number}</div>
+          ${invoice.proforma_number ? `<div class="field-label" style="margin-top:4px;">Against Proforma ${invoice.proforma_number}</div>` : ''}
         </div>
         <div class="field-box">
           <div class="field-label">Invoice Date</div>

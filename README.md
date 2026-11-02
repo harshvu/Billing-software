@@ -142,7 +142,8 @@ Frontend runs at **http://localhost:5173** and proxies `/api` calls to the backe
 ## 7. Notes & Production Tips
 
 - Passwords are hashed with bcrypt; auth uses signed JWTs (`JWT_SECRET` — set a strong, unique value in production).
-- New invoices are numbered by financial year, `26-27/001`, `26-27/002`, ... and the prefix rolls over to `27-28/001` every April. Invoices created earlier keep their original `INV-` numbers.
+- Tax Invoices and "Generate Invoice" bills are numbered by financial year, `26-27/001`, `26-27/002`, ... and the prefix rolls over to `27-28/001` every April. Converting a Proforma to a Tax Invoice gives it the next bill number and keeps the Proforma's `INV-` number as a reference.
+- New Proforma invoices keep the `INV-` series (`INV-209`, `INV-210`, ...). Invoices created earlier keep their original numbers.
 - If an employee with existing invoices is removed, the account is deactivated instead of deleted, to preserve invoice history integrity.
 - For production deployment: set `NODE_ENV=production`, run the frontend build (`npm run build` inside `frontend`) and serve the static output behind a reverse proxy (e.g. Nginx) alongside the Node API, and use a managed MySQL instance.
 - Puppeteer launches a headless Chromium instance for PDF rendering and is reused across requests for performance; ensure your server has enough memory (min. ~512MB free) when running the backend.

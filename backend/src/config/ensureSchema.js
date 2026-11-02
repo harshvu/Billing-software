@@ -13,6 +13,7 @@ const sequelize = require('./db');
 // Columns added after their table was first created. Add new entries here in the future.
 const ADDED_COLUMNS = [
   { table: 'company_settings', column: 'cin', definition: { type: DataTypes.STRING, allowNull: true } },
+  { table: 'invoices', column: 'proforma_number', definition: { type: DataTypes.STRING, allowNull: true } },
 ];
 
 // Looks at each table above and adds the column only if it is not there yet.

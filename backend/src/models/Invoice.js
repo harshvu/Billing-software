@@ -9,6 +9,9 @@ const Invoice = sequelize.define('Invoice', {
   },
   invoice_number: { type: DataTypes.STRING, allowNull: false, unique: true },
   invoice_type: { type: DataTypes.ENUM('proforma', 'tax', 'simple'), allowNull: false, defaultValue: 'proforma' },
+  // For a Tax Invoice that was converted from a Proforma: the Proforma's original INV- number.
+  // Added after the table first existed, so see config/ensureSchema.js.
+  proforma_number: { type: DataTypes.STRING, allowNull: true },
   invoice_date: { type: DataTypes.DATEONLY, allowNull: false },
 
   branch: { type: DataTypes.STRING, allowNull: true },
