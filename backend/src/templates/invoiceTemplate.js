@@ -159,6 +159,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
         <div class="company-name">${settings.company_name}</div>
         ${settings.gstin ? `<div>GSTIN: ${settings.gstin}</div>` : ''}
         ${settings.pan ? `<div>PAN: ${settings.pan}</div>` : ''}
+        ${settings.cin ? `<div>CIN: ${settings.cin}</div>` : ''}
         <div>Phone: ${settings.phone || '-'}</div>
         <div>${settings.address || ''}</div>
       </div>

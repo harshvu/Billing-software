@@ -22,7 +22,7 @@ exports.updateSettings = async (req, res) => {
       settings = await CompanySetting.create({});
     }
     const fields = [
-      'company_name', 'gstin', 'pan', 'phone', 'address', 'logo_text',
+      'company_name', 'gstin', 'pan', 'cin', 'phone', 'address', 'logo_text',
       'bank_account_name', 'bank_account_no', 'bank_ifsc', 'bank_branch', 'upi_id', 'default_gst_rate',
     ];
     fields.forEach((f) => {

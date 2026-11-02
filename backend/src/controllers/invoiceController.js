@@ -4,6 +4,9 @@ const generateInvoiceNumber = require('../utils/generateInvoiceNumber');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { inScope } = require('../middleware/scope');
 
+// HSN/SAC code used for new line items when none is entered (998312 = business consulting services).
+const DEFAULT_HSN = '998312';
+
 function computeTotals(items, applyGst, gstRate) {
   const subTotal = items.reduce((sum, it) => sum + (Number(it.qty) * Number(it.rate)), 0);
   const gstAmount = applyGst ? +(subTotal * (Number(gstRate) / 100)).toFixed(2) : 0;
@@ -31,7 +34,7 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'At least one line item is required.' });
     }
 
-    const invoiceNumber = await generateInvoiceNumber('proforma');
+    const invoiceNumber = await generateInvoiceNumber();
     const rate = apply_gst ? (gst_rate || 18) : 0;
     const { subTotal, gstAmount, grandTotal } = computeTotals(items, apply_gst, rate);
 
@@ -62,7 +65,7 @@ exports.createInvoice = async (req, res) => {
       invoice_id: invoice.id,
       s_no: idx + 1,
       particulars: it.particulars,
-      hsn: it.hsn,
+      hsn: it.hsn || DEFAULT_HSN,
       qty: it.qty || 1,
       rate: it.rate || 0,
       amount: +((it.qty || 1) * (it.rate || 0)).toFixed(2),
@@ -172,7 +175,7 @@ exports.convertToTaxInvoice = async (req, res) => {
 };
 
 // POST /api/invoices/:id/generate-simple  (admin only)
-// Creates a NEW, separate Invoice record (its own id + INV-01-style number) that
+// Creates a NEW, separate Invoice record (its own id + next number in the bill series) that
 // mirrors this invoice's client/items/amounts but displays GST as a single
 // inclusive Sub-Total with an "18% GST is applicable" note, instead of a broken-out
 // GST line. The source invoice (Proforma or Tax) is left completely untouched.
@@ -193,7 +196,7 @@ exports.generateSimpleInvoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'This is already a simple Invoice.' });
     }
 
-    const invoiceNumber = await generateInvoiceNumber('simple');
+    const invoiceNumber = await generateInvoiceNumber();
 
     const invoice = await Invoice.create({
       invoice_number: invoiceNumber,

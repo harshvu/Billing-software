@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./src/models');
+const ensureSchema = require('./src/config/ensureSchema');
 
 const authRoutes = require('./src/routes/authRoutes');
 const employeeRoutes = require('./src/routes/employeeRoutes');
@@ -45,6 +46,7 @@ async function start() {
     await sequelize.authenticate();
     console.log('MySQL connection established.');
     await sequelize.sync(); // creates tables if they do not exist
+    await ensureSchema(); // adds newly introduced columns to tables that already exist
     console.log('Database synced.');
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
   } catch (err) {

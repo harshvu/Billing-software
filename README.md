@@ -142,7 +142,7 @@ Frontend runs at **http://localhost:5173** and proxies `/api` calls to the backe
 ## 7. Notes & Production Tips
 
 - Passwords are hashed with bcrypt; auth uses signed JWTs (`JWT_SECRET` — set a strong, unique value in production).
-- Invoice numbers auto-increment (`INV-2158`, `INV-2159`, ...) based on the last saved invoice.
+- New invoices are numbered by financial year, `26-27/001`, `26-27/002`, ... and the prefix rolls over to `27-28/001` every April. Invoices created earlier keep their original `INV-` numbers.
 - If an employee with existing invoices is removed, the account is deactivated instead of deleted, to preserve invoice history integrity.
 - For production deployment: set `NODE_ENV=production`, run the frontend build (`npm run build` inside `frontend`) and serve the static output behind a reverse proxy (e.g. Nginx) alongside the Node API, and use a managed MySQL instance.
 - Puppeteer launches a headless Chromium instance for PDF rendering and is reused across requests for performance; ensure your server has enough memory (min. ~512MB free) when running the backend.

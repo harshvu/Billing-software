@@ -5,8 +5,9 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { INDIAN_STATES } from '../constants/indianStates';
 
-const emptyItem = () => ({ particulars: '', hsn: '', qty: 1, rate: 0 });
-const firstItem = () => ({ particulars: 'Consulting Charges', hsn: '', qty: 1, rate: 0 });
+const DEFAULT_HSN = '998312';
+const emptyItem = () => ({ particulars: '', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
+const firstItem = () => ({ particulars: 'Consulting Charges', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
 
 export default function CreateInvoice() {
   const navigate = useNavigate();

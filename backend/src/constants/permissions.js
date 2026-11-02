@@ -11,7 +11,7 @@ const PERMISSION_SCHEMA = {
       create: 'Create invoices',
       download: 'Download PDF',
       convertToTax: 'Convert to Tax Invoice',
-      generateInvoice: 'Generate Invoice (INV-01 series)',
+      generateInvoice: 'Generate Invoice',
       delete: 'Delete invoices',
     },
   },

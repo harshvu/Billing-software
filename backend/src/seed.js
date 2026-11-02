@@ -1,11 +1,13 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { sequelize, User, CompanySetting } = require('./models');
+const ensureSchema = require('./config/ensureSchema');
 
 async function seed() {
   try {
     await sequelize.authenticate();
     await sequelize.sync();
+    await ensureSchema();
 
     const adminEmail = (process.env.DEFAULT_ADMIN_EMAIL || 'admin@rexera.com').toLowerCase();
     const existingAdmin = await User.findOne({ where: { email: adminEmail } });
