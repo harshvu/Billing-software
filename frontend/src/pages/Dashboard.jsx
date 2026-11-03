@@ -52,7 +52,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500">Overview of your billing activity</p>
           </div>
           <Link to="/invoices/new" className="bg-gold hover:brightness-95 transition text-navy font-bold text-sm px-5 py-2.5 rounded-lg shadow">
-            + Create Invoice
+            + Create Proforma Invoice
           </Link>
         </div>
 
@@ -91,7 +91,7 @@ export default function Dashboard() {
                     <td className="px-5 py-3">{inv.client_name}</td>
                     <td className="px-5 py-3">{new Date(inv.invoice_date).toLocaleDateString('en-IN')}</td>
                     <td className="px-5 py-3 text-right font-semibold">₹{Number(inv.grand_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td className="px-5 py-3">{inv.generated_by_name}</td>
+                    <td className="px-5 py-3">{inv.invoice_type === 'tax' ? '-' : inv.generated_by_name}</td>
                     <td className="px-5 py-3 text-right">
                       <Link to={`/invoices/${inv.id}`} className="text-navy font-semibold hover:underline">View</Link>
                     </td>

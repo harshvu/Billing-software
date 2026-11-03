@@ -4,9 +4,12 @@ export const PERMISSION_SCHEMA = {
   invoices: {
     label: 'Invoices',
     actions: {
-      menu: 'Show Invoices menu',
+      menu: 'Show Proforma Invoice menu',
       view: 'View invoices',
-      create: 'Create invoices',
+      create: 'Create Proforma invoices',
+      taxMenu: 'Show Tax Invoice menu',
+      createTax: 'Create Tax invoices directly',
+      edit: 'Edit invoices (Proforma and Tax)',
       download: 'Download PDF',
       convertToTax: 'Convert to Tax Invoice',
       generateInvoice: 'Generate Invoice',

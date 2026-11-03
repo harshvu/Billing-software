@@ -1,5 +1,9 @@
+// Invoice form. One screen used in three ways:
+//   <CreateInvoice kind="proforma" />   create a Proforma Invoice (number INV-...)
+//   <CreateInvoice kind="tax" />        create a Tax Invoice directly, no Proforma needed (number 26-27/...)
+//   <CreateInvoice editing />           edit an existing Proforma or Tax Invoice (number never changes)
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
@@ -9,10 +13,18 @@ const DEFAULT_HSN = '998312';
 const emptyItem = () => ({ particulars: '', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
 const firstItem = () => ({ particulars: 'Consulting Charges', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
 
-export default function CreateInvoice() {
+export default function CreateInvoice({ kind = 'proforma', editing = false }) {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [settings, setSettings] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loadedInvoice, setLoadedInvoice] = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(editing);
+
+  // When editing, the kind comes from the saved invoice; otherwise from the menu used.
+  const invoiceKind = editing ? (loadedInvoice?.invoice_type || 'proforma') : kind;
+  const isTax = invoiceKind === 'tax';
+  const kindLabel = isTax ? 'Tax Invoice' : 'Proforma Invoice';
 
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
   const [branch, setBranch] = useState('Vadodara');
@@ -24,7 +36,9 @@ export default function CreateInvoice() {
 
   const [applyGst, setApplyGst] = useState(true);
   const [gstState, setGstState] = useState('');
-  const gstType = 'cgst_sgst';
+  // New invoices always use CGST + SGST. An old invoice that was saved as IGST keeps it when edited.
+  const [gstType, setGstType] = useState('cgst_sgst');
+  const [ownGstRate, setOwnGstRate] = useState(null);
 
   const [items, setItems] = useState([firstItem()]);
   const [remarks, setRemarks] = useState('');
@@ -32,6 +46,38 @@ export default function CreateInvoice() {
   useEffect(() => {
     api.get('/settings').then((res) => setSettings(res.data.settings)).catch(() => {});
   }, []);
+
+  // Editing: load the saved invoice and fill the form with its current values.
+  useEffect(() => {
+    if (!editing) return;
+    api.get(`/invoices/${id}`).then((res) => {
+      const inv = res.data.invoice;
+      if (inv.invoice_type === 'simple') {
+        toast.error('Generate Invoice bills cannot be edited.');
+        navigate(`/invoices/${id}`);
+        return;
+      }
+      setLoadedInvoice(inv);
+      setInvoiceDate(String(inv.invoice_date).slice(0, 10));
+      setBranch(inv.branch || '');
+      setClientName(inv.client_name || '');
+      setClientAddress(inv.client_address || '');
+      setClientPhone(inv.client_phone || '');
+      setClientGstin(inv.client_gstin || '');
+      setApplyGst(!!inv.apply_gst);
+      setGstState(inv.client_state || '');
+      setGstType(inv.gst_type === 'igst' ? 'igst' : 'cgst_sgst');
+      setOwnGstRate(Number(inv.gst_rate) > 0 ? Number(inv.gst_rate) : null);
+      setRemarks(inv.remarks || '');
+      const lines = [...(inv.items || [])].sort((a, b) => a.s_no - b.s_no);
+      setItems(lines.length
+        ? lines.map((it) => ({ particulars: it.particulars || '', hsn: it.hsn || '', qty: Number(it.qty), rate: Number(it.rate) }))
+        : [firstItem()]);
+    }).catch(() => {
+      toast.error('Could not load this invoice.');
+      navigate('/invoices');
+    }).finally(() => setLoadingInvoice(false));
+  }, [editing, id]);
 
   const updateItem = (idx, field, value) => {
     const copy = [...items];
@@ -43,7 +89,7 @@ export default function CreateInvoice() {
   const removeRow = (idx) => setItems(items.filter((_, i) => i !== idx));
 
   const subTotal = items.reduce((sum, it) => sum + (Number(it.qty) || 0) * (Number(it.rate) || 0), 0);
-  const gstRate = Number(settings?.default_gst_rate || 18);
+  const gstRate = ownGstRate || Number(settings?.default_gst_rate || 18);
   const gstAmount = applyGst ? +(subTotal * (gstRate / 100)).toFixed(2) : 0;
   const grandTotal = +(subTotal + gstAmount).toFixed(2);
 
@@ -55,7 +101,6 @@ export default function CreateInvoice() {
     setSaving(true);
     try {
       const payload = {
-        invoice_type: 'proforma',
         invoice_date: invoiceDate,
         branch,
         client_name: clientName,
@@ -69,11 +114,17 @@ export default function CreateInvoice() {
         remarks,
         items,
       };
-      const res = await api.post('/invoices', payload);
-      toast.success(`Invoice ${res.data.invoice.invoice_number} created successfully.`);
-      navigate(`/invoices/${res.data.invoice.id}`);
+      if (editing) {
+        const res = await api.put(`/invoices/${id}`, payload);
+        toast.success(`Invoice ${res.data.invoice.invoice_number} updated successfully.`);
+        navigate(`/invoices/${res.data.invoice.id}`);
+      } else {
+        const res = await api.post(isTax ? '/invoices/tax' : '/invoices', payload);
+        toast.success(`Invoice ${res.data.invoice.invoice_number} created successfully.`);
+        navigate(`/invoices/${res.data.invoice.id}`);
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create invoice.');
+      toast.error(err.response?.data?.message || (editing ? 'Failed to update invoice.' : 'Failed to create invoice.'));
     } finally {
       setSaving(false);
     }
@@ -81,16 +132,24 @@ export default function CreateInvoice() {
 
   const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  if (loadingInvoice) {
+    return <div className="min-h-screen bg-gray-100"><Navbar /><div className="p-8 text-gray-500 text-sm">Loading...</div></div>;
+  }
+
+  const listPath = isTax ? '/tax-invoices' : '/invoices';
+
   return (
     <div className="min-h-screen bg-gray-100 pb-16">
       <Navbar />
       <form onSubmit={handleSubmit} className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-navy">Create Invoice</h1>
-            <p className="text-sm text-gray-500">Fill in the details below to generate a new invoice</p>
+            <h1 className="text-2xl font-bold text-navy">{editing ? `Edit ${kindLabel}` : `Create ${kindLabel}`}</h1>
+            <p className="text-sm text-gray-500">
+              {editing ? 'Change any detail below, then save. The invoice number stays the same.' : `Fill in the details below to generate a new ${kindLabel.toLowerCase()}`}
+            </p>
           </div>
-          <span className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold text-navy bg-gray-50">Proforma Invoice</span>
+          <span className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold text-navy bg-gray-50">{kindLabel}</span>
         </div>
 
         {/* Invoice Setup */}
@@ -124,7 +183,7 @@ export default function CreateInvoice() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Invoice Number</label>
-                <input disabled value="Auto-generated on save" className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2 text-sm" />
+                <input disabled value={editing ? (loadedInvoice?.invoice_number || '') : (isTax ? 'Auto-generated on save (26-27/...)' : 'Auto-generated on save')} className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">Invoice Date</label>
@@ -150,7 +209,7 @@ export default function CreateInvoice() {
                     {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <div className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-semibold flex items-center">
-                    CGST + SGST ({gstRate}%)
+                    {gstType === 'igst' ? 'IGST' : 'CGST + SGST'} ({gstRate}%)
                   </div>
                 </div>
               )}
@@ -241,9 +300,9 @@ export default function CreateInvoice() {
         </div>
 
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={() => navigate('/invoices')} className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-600 font-semibold text-sm">Cancel</button>
+          <button type="button" onClick={() => navigate(editing ? `/invoices/${id}` : listPath)} className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-600 font-semibold text-sm">Cancel</button>
           <button disabled={saving} type="submit" className="bg-gold text-navy font-bold px-8 py-2.5 rounded-lg shadow disabled:opacity-60">
-            {saving ? 'Saving...' : 'Save & Generate Invoice'}
+            {saving ? 'Saving...' : editing ? 'Save Changes' : 'Save & Generate Invoice'}
           </button>
         </div>
       </form>

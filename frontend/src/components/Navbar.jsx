@@ -26,19 +26,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-          {hasPermission(user, 'invoices', 'create') && <Link to="/invoices/new" className="hover:text-gold transition">Create Invoice</Link>}
-          {hasPermission(user, 'invoices', 'menu') && <Link to="/invoices" className="hover:text-gold transition">Invoices</Link>}
-          {hasPermission(user, 'crm', 'menu') && <Link to="/crm" className="hover:text-gold transition">CRM</Link>}
-          {hasPermission(user, 'reports', 'menu') && <Link to="/reports" className="hover:text-gold transition">Reports</Link>}
-          {(user?.role === 'admin' || user?.role === 'project_manager') && (
-            <Link to="/employees" className="hover:text-gold transition">Employees</Link>
-          )}
-          {user?.role === 'admin' && (
-            <Link to="/settings" className="hover:text-gold transition">Settings</Link>
-          )}
-        </div>
-
         <div className="flex items-center gap-3">
           <div className="bg-white/10 rounded-full px-3 py-1.5 text-xs">
             Welcome, <span className="font-semibold">{user?.name}</span>
@@ -50,6 +37,23 @@ export default function Navbar() {
           >
             Logout
           </button>
+        </div>
+      </div>
+
+      <div className="hidden md:block border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+          {hasPermission(user, 'invoices', 'create') && <Link to="/invoices/new" className="hover:text-gold transition">Create Proforma Invoice</Link>}
+          {hasPermission(user, 'invoices', 'menu') && <Link to="/invoices" className="hover:text-gold transition">Proforma Invoice</Link>}
+          {hasPermission(user, 'invoices', 'createTax') && <Link to="/tax-invoices/new" className="hover:text-gold transition">Create Tax Invoice</Link>}
+          {hasPermission(user, 'invoices', 'taxMenu') && <Link to="/tax-invoices" className="hover:text-gold transition">Tax Invoice</Link>}
+          {hasPermission(user, 'crm', 'menu') && <Link to="/crm" className="hover:text-gold transition">CRM</Link>}
+          {hasPermission(user, 'reports', 'menu') && <Link to="/reports" className="hover:text-gold transition">Reports</Link>}
+          {(user?.role === 'admin' || user?.role === 'project_manager') && (
+            <Link to="/employees" className="hover:text-gold transition">Employees</Link>
+          )}
+          {user?.role === 'admin' && (
+            <Link to="/settings" className="hover:text-gold transition">Settings</Link>
+          )}
         </div>
       </div>
     </div>

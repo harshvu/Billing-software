@@ -6,9 +6,12 @@ const PERMISSION_SCHEMA = {
   invoices: {
     label: 'Invoices',
     actions: {
-      menu: 'Show Invoices menu',
+      menu: 'Show Proforma Invoice menu',
       view: 'View invoices',
-      create: 'Create invoices',
+      create: 'Create Proforma invoices',
+      taxMenu: 'Show Tax Invoice menu',
+      createTax: 'Create Tax invoices directly',
+      edit: 'Edit invoices (Proforma and Tax)',
       download: 'Download PDF',
       convertToTax: 'Convert to Tax Invoice',
       generateInvoice: 'Generate Invoice',
@@ -41,7 +44,7 @@ const PERMISSION_SCHEMA = {
 // so turning this on does not silently cut off any existing employee's access.
 // Admin-only actions (delete/convert/workflow-status) default OFF — admin can grant them per employee.
 const DEFAULT_EMPLOYEE_PERMISSIONS = {
-  invoices: { menu: true, view: true, create: true, download: true, convertToTax: false, generateInvoice: false, delete: false },
+  invoices: { menu: true, view: true, create: true, taxMenu: false, createTax: false, edit: false, download: true, convertToTax: false, generateInvoice: false, delete: false },
   crm: { menu: true, view: true, create: true, uploadPaymentProof: true, uploadDocument: true, updateWorkflow: false, delete: false },
   reports: { menu: true, view: true },
 };

@@ -26,9 +26,12 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
-        <Route path="/invoices/new" element={<ProtectedRoute><CreateInvoice /></ProtectedRoute>} />
+        <Route path="/invoices" element={<ProtectedRoute><Invoices mode="proforma" /></ProtectedRoute>} />
+        <Route path="/invoices/new" element={<ProtectedRoute><CreateInvoice kind="proforma" /></ProtectedRoute>} />
+        <Route path="/invoices/:id/edit" element={<ProtectedRoute><CreateInvoice editing /></ProtectedRoute>} />
         <Route path="/invoices/:id" element={<ProtectedRoute><InvoiceView /></ProtectedRoute>} />
+        <Route path="/tax-invoices" element={<ProtectedRoute><Invoices mode="tax" /></ProtectedRoute>} />
+        <Route path="/tax-invoices/new" element={<ProtectedRoute><CreateInvoice kind="tax" /></ProtectedRoute>} />
         <Route path="/crm" element={<ProtectedRoute><CrmList /></ProtectedRoute>} />
         <Route path="/crm/new" element={<ProtectedRoute><CrmSubmit /></ProtectedRoute>} />
         <Route path="/crm/:id" element={<ProtectedRoute><CrmDetail /></ProtectedRoute>} />
