@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import { hasPermission } from '../constants/permissions';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -51,9 +52,16 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-navy">Dashboard</h1>
             <p className="text-sm text-gray-500">Overview of your billing activity</p>
           </div>
-          <Link to="/invoices/new" className="bg-gold hover:brightness-95 transition text-navy font-bold text-sm px-5 py-2.5 rounded-lg shadow">
-            + Create Proforma Invoice
-          </Link>
+          <div className="flex gap-3">
+            <Link to="/invoices/new" className="bg-gold hover:brightness-95 transition text-navy font-bold text-sm px-5 py-2.5 rounded-lg shadow">
+              + Create Proforma Invoice
+            </Link>
+            {hasPermission(user, 'invoices', 'createTax') && (
+              <Link to="/tax-invoices/new" className="bg-navy hover:bg-navy-dark transition text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow">
+                + Create Tax Invoice
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.role === 'admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-8`}>
