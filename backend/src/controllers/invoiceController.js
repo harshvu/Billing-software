@@ -3,9 +3,8 @@ const { sequelize, Invoice, InvoiceItem, CompanySetting, User } = require('../mo
 const { generateBillNumber, generateProformaNumber } = require('../utils/generateInvoiceNumber');
 const { generateInvoicePDF } = require('../utils/pdfGenerator');
 const { inScope } = require('../middleware/scope');
+const { DEFAULT_HSN } = require('../constants/invoice');
 
-// HSN/SAC code used for new line items when none is entered (998312 = business consulting services).
-const DEFAULT_HSN = '998312';
 
 function computeTotals(items, applyGst, gstRate) {
   const subTotal = items.reduce((sum, it) => sum + (Number(it.qty) * Number(it.rate)), 0);
@@ -24,16 +23,16 @@ function validateInvoiceBody(body) {
 }
 
 // Cleans up the line items sent from the form: a missing quantity becomes 1, a missing rate
-// becomes 0, and each line amount is worked out here so totals always match the lines.
-// When fillHsn is true a blank HSN gets the default code; edits leave a blank HSN as it was.
-function normalizeItems(items, fillHsn) {
+// becomes 0, a blank HSN gets the default code, and each line amount is worked out here so
+// totals always match the lines.
+function normalizeItems(items) {
   return items.map((it, idx) => {
     const qty = Number(it.qty) || 1;
     const rate = Number(it.rate) || 0;
     return {
       s_no: idx + 1,
       particulars: it.particulars,
-      hsn: fillHsn ? (it.hsn || DEFAULT_HSN) : (it.hsn || ''),
+      hsn: it.hsn || DEFAULT_HSN,
       qty,
       rate,
       amount: +(qty * rate).toFixed(2),
@@ -57,7 +56,7 @@ function makeCreateHandler(invoiceType) {
 
       const invoiceNumber = invoiceType === 'tax' ? await generateBillNumber() : await generateProformaNumber();
       const rate = body.apply_gst ? (body.gst_rate || 18) : 0;
-      const itemRows = normalizeItems(body.items, true);
+      const itemRows = normalizeItems(body.items);
       const { subTotal, gstAmount, grandTotal } = computeTotals(itemRows, body.apply_gst, rate);
 
       const invoice = await Invoice.create({
@@ -128,7 +127,7 @@ exports.updateInvoice = async (req, res) => {
     }
 
     const rate = body.apply_gst ? (body.gst_rate || 18) : 0;
-    const itemRows = normalizeItems(body.items, false);
+    const itemRows = normalizeItems(body.items);
     const { subTotal, gstAmount, grandTotal } = computeTotals(itemRows, body.apply_gst, rate);
 
     const changes = {
@@ -237,18 +236,23 @@ exports.downloadInvoicePDF = async (req, res) => {
 
 // PUT /api/invoices/:id/convert-to-tax  (admin, or PM/employee granted the permission, within their scope)
 exports.convertToTaxInvoice = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    const invoice = await Invoice.findByPk(req.params.id, { include: [{ model: InvoiceItem, as: 'items' }] });
+    const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) {
+      await t.rollback();
       return res.status(404).json({ success: false, message: 'Invoice not found.' });
     }
     if (!inScope(invoice.generated_by_id, req.user)) {
+      await t.rollback();
       return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
     }
     if (invoice.invoice_type === 'tax') {
+      await t.rollback();
       return res.status(400).json({ success: false, message: 'This invoice is already a Tax Invoice.' });
     }
     if (invoice.invoice_type !== 'proforma') {
+      await t.rollback();
       return res.status(400).json({ success: false, message: 'Only a Proforma Invoice can be converted to a Tax Invoice.' });
     }
     // The Tax Invoice takes the next number in the bill series (e.g. 26-27/001). The
@@ -256,9 +260,20 @@ exports.convertToTaxInvoice = async (req, res) => {
     invoice.proforma_number = invoice.invoice_number;
     invoice.invoice_number = await generateBillNumber();
     invoice.invoice_type = 'tax';
-    await invoice.save();
-    return res.json({ success: true, message: `Invoice converted to Tax Invoice ${invoice.invoice_number}.`, invoice });
+    await invoice.save({ transaction: t });
+
+    // Lines of an older Proforma may have been saved without an HSN. Save the default HSN
+    // on them now so the Tax Invoice carries it. Lines that already have an HSN are not touched.
+    await InvoiceItem.update(
+      { hsn: DEFAULT_HSN },
+      { where: { invoice_id: invoice.id, [Op.or]: [{ hsn: null }, { hsn: '' }] }, transaction: t },
+    );
+    await t.commit();
+
+    const fullInvoice = await Invoice.findByPk(invoice.id, { include: [{ model: InvoiceItem, as: 'items' }] });
+    return res.json({ success: true, message: `Invoice converted to Tax Invoice ${fullInvoice.invoice_number}.`, invoice: fullInvoice });
   } catch (err) {
+    await t.rollback();
     console.error('Convert to tax invoice error:', err);
     return res.status(500).json({ success: false, message: 'Server error while converting invoice.' });
   }
@@ -313,7 +328,7 @@ exports.generateSimpleInvoice = async (req, res) => {
       invoice_id: invoice.id,
       s_no: it.s_no,
       particulars: it.particulars,
-      hsn: it.hsn,
+      hsn: it.hsn || DEFAULT_HSN,
       qty: it.qty,
       rate: it.rate,
       amount: it.amount,

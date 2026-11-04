@@ -8,8 +8,8 @@ import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { INDIAN_STATES } from '../constants/indianStates';
+import { DEFAULT_HSN } from '../constants/invoice';
 
-const DEFAULT_HSN = '998312';
 const emptyItem = () => ({ particulars: '', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
 const firstItem = () => ({ particulars: 'Consulting Charges', hsn: DEFAULT_HSN, qty: 1, rate: 0 });
 
@@ -71,7 +71,7 @@ export default function CreateInvoice({ kind = 'proforma', editing = false }) {
       setRemarks(inv.remarks || '');
       const lines = [...(inv.items || [])].sort((a, b) => a.s_no - b.s_no);
       setItems(lines.length
-        ? lines.map((it) => ({ particulars: it.particulars || '', hsn: it.hsn || '', qty: Number(it.qty), rate: Number(it.rate) }))
+        ? lines.map((it) => ({ particulars: it.particulars || '', hsn: it.hsn || DEFAULT_HSN, qty: Number(it.qty), rate: Number(it.rate) }))
         : [firstItem()]);
     }).catch(() => {
       toast.error('Could not load this invoice.');

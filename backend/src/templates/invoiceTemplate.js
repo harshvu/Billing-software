@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { DEFAULT_HSN } = require('../constants/invoice');
 
 const logoDataUri = (() => {
   const buf = fs.readFileSync(path.join(__dirname, '..', 'assets', 'logo.png'));
@@ -38,7 +39,7 @@ function buildInvoiceHTML({ invoice, items, settings, qrDataUrl }) {
     <tr>
       <td class="c">${it.s_no}</td>
       <td>${it.particulars}</td>
-      <td class="c">${it.hsn || ''}</td>
+      <td class="c">${it.hsn || DEFAULT_HSN}</td>
       <td class="c">${Number(it.qty)}</td>
       <td class="r">${formatCurrency(it.rate)}</td>
       <td class="r b">${formatCurrency(it.amount)}</td>

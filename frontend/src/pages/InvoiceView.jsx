@@ -5,6 +5,7 @@ import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { hasPermission } from '../constants/permissions';
+import { DEFAULT_HSN } from '../constants/invoice';
 import logo from '../assets/logo.png';
 
 export default function InvoiceView() {
@@ -163,7 +164,7 @@ export default function InvoiceView() {
                   <tr key={it.id} className="border-b border-gray-100">
                     <td className="px-4 py-3">{it.s_no}</td>
                     <td className="px-4 py-3">{it.particulars}</td>
-                    <td className="px-4 py-3 text-center">{it.hsn}</td>
+                    <td className="px-4 py-3 text-center">{it.hsn || DEFAULT_HSN}</td>
                     <td className="px-4 py-3 text-center">{Number(it.qty)}</td>
                     <td className="px-4 py-3 text-right">{fmt(it.rate)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{fmt(it.amount)}</td>
