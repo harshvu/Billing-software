@@ -136,10 +136,7 @@ export default function InvoiceView() {
               <div className="border border-gray-200 rounded-xl p-5">
                 <div className="text-xs font-bold text-navy uppercase mb-2">Invoice Details</div>
                 <div className="text-sm text-gray-500">Invoice Number</div>
-                <div className="font-bold mb-2">
-                  {invoice.invoice_number}
-                  {invoice.proforma_number && <span className="block text-xs font-normal text-gray-400">Against Proforma {invoice.proforma_number}</span>}
-                </div>
+                <div className="font-bold mb-2">{invoice.invoice_number}</div>
                 <div className="text-sm text-gray-500">Invoice Date</div>
                 <div className="font-bold mb-2">{new Date(invoice.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                 {invoice.invoice_type !== 'tax' && (

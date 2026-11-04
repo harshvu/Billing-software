@@ -99,10 +99,7 @@ export default function Invoices({ mode = 'proforma' }) {
               <tbody>
                 {filtered.map((inv) => (
                   <tr key={inv.id} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-5 py-3 font-semibold text-navy">
-                      {inv.invoice_number}
-                      {inv.proforma_number && <span className="block text-xs font-normal text-gray-400">Against Proforma {inv.proforma_number}</span>}
-                    </td>
+                    <td className="px-5 py-3 font-semibold text-navy">{inv.invoice_number}</td>
                     <td className="px-5 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${TYPE_STYLES[inv.invoice_type] || TYPE_STYLES.proforma}`}>
                         {TYPE_LABELS[inv.invoice_type] || inv.invoice_type}
